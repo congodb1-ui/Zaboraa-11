@@ -66,7 +66,7 @@ Transitioning legacy VMware vSphere software-defined datacenters (SDDC) to Nutan
 3. **Microsegmentation & Security Policies**: Flow Network Security enforces stateful Layer-4 through Layer-7 firewall policies inside the AHV kernel before frames enter physical wires.
 
 ---
-*© 2026 Zaboraa Technologies. All rights reserved.*
+*© 2026 Enterprise Architecture. All rights reserved.*
 `
   },
   {
@@ -117,7 +117,7 @@ Nutanix Move provides an agentless, enterprise-grade migration pipeline specific
    - Flow Layer 2 Subnet Extension preserves source IP and MAC addresses, avoiding DNS re-propagation delays.
 
 ---
-*© 2026 Zaboraa Technologies. All rights reserved.*
+*© 2026 Enterprise Architecture. All rights reserved.*
 `
   },
   {
@@ -169,7 +169,7 @@ To optimize total cost of ownership (TCO), DSF integrates directly with Azure Bl
 3. **Non-Disruptive Test Bubble Validation**: 1-click execution into isolated sandbox networks validating full recovery without impacting production replication streams.
 
 ---
-*© 2026 Zaboraa Technologies. All rights reserved.*
+*© 2026 Enterprise Architecture. All rights reserved.*
 `
   },
   {
@@ -200,7 +200,7 @@ Azure VMware Solution (AVS) enables enterprises to run native VMware vSphere, vS
 2. **Decoupled Storage with ANF**: Overcomes the vSAN cluster sizing dilemma (where storage-heavy workloads force purchasing unnecessary compute nodes) by attaching managed Azure NetApp Files (ANF) NFSv3 datastores.
 
 ---
-*© 2026 Zaboraa Technologies. All rights reserved.*
+*© 2026 Enterprise Architecture. All rights reserved.*
 `
   }
 ];
@@ -208,7 +208,13 @@ Azure VMware Solution (AVS) enables enterprises to run native VMware vSphere, vS
 /**
  * Compiles selected whitepapers into an in-memory ZIP bundle using JSZip and triggers a browser download.
  */
-export async function downloadWhitepapersZip(selectedIds: string[], bundleName: string = 'Zaboraa_Enterprise_Architecture_Kit'): Promise<void> {
+export async function downloadWhitepapersZip(
+  selectedIds: string[],
+  bundleName?: string,
+  brandName?: string
+): Promise<void> {
+  const effectiveOrg = brandName || 'Enterprise Architecture';
+  const effectiveBundle = bundleName || `${effectiveOrg.replace(/[^a-zA-Z0-9]/g, '_')}_Architecture_Kit`;
   const zip = new JSZip();
 
   const selectedPapers = ENTERPRISE_WHITEPAPERS.filter(wp => selectedIds.includes(wp.id));
@@ -221,9 +227,9 @@ export async function downloadWhitepapersZip(selectedIds: string[], bundleName: 
   const specsFolder = zip.folder('Architecture_Specifications');
 
   const manifest = {
-    packageName: bundleName,
+    packageName: effectiveBundle,
     generatedDate: new Date().toISOString(),
-    organization: 'Zaboraa Technologies',
+    organization: effectiveOrg,
     curator: 'Wasim Sayyed, Principal Cloud Architect',
     totalDocuments: selectedPapers.length,
     documents: selectedPapers.map(wp => ({
@@ -241,7 +247,7 @@ export async function downloadWhitepapersZip(selectedIds: string[], bundleName: 
   zip.file('manifest.json', JSON.stringify(manifest, null, 2));
 
   // 2. Add README
-  const readmeContent = `# Zaboraa Technologies Enterprise Architecture Bundle
+  const readmeContent = `# ${effectiveOrg} Enterprise Architecture Bundle
 Generated: ${new Date().toLocaleDateString()}
 Curator: Wasim Sayyed (Principal Cloud Architect)
 
@@ -250,8 +256,7 @@ This archive contains ${selectedPapers.length} technical whitepapers and archite
 ### Included Documents:
 ${selectedPapers.map((p, idx) => `${idx + 1}. **${p.title}** (v${p.version}) - ${p.discipline}`).join('\n')}
 
-For architectural briefing inquiries, contact Wasim Sayyed:
-Email: wasim@zaboraa.com | Website: https://zaboraa.com
+For architectural briefing inquiries, contact Wasim Sayyed.
 `;
   zip.file('README.md', readmeContent);
 

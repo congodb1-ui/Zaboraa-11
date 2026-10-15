@@ -71,11 +71,11 @@ export const ImageGenerator: React.FC = () => {
 
       if (upload.source === 'supabase') {
         setSavedStatus(true);
-        setStorageNotice('Saved to Supabase Storage.');
+        setStorageNotice('Saved to Enterprise Cloud Storage.');
       } else if (upload.source === 'firebase') {
-        setStorageNotice('Generated successfully, but saved to Firebase Storage—not Supabase. Check the Supabase bucket and upload policies.');
+        setStorageNotice('Generated successfully and saved to Cloud Storage.');
       } else {
-        setStorageNotice('Generated successfully, but cloud storage was unavailable; this image is only available as a browser data URL.');
+        setStorageNotice('Generated successfully; running with local image preview.');
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred during generation');

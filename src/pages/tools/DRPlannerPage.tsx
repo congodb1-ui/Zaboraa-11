@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useCustomization } from '../../context/CustomizationContext';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import {
@@ -91,6 +92,10 @@ const DR_ENGINES: Record<DREngineType, DREngineConfig> = {
 
 export const DRPlannerPage: React.FC = () => {
   const navigate = useNavigate();
+  const { brandName } = useCustomization();
+  const effectiveBrand = brandName || 'Enterprise Architecture';
+  const brandSlug = effectiveBrand.replace(/[^a-zA-Z0-9]/g, '_');
+  const brandUpper = effectiveBrand.toUpperCase();
 
   // Engine selection
   const [selectedEngineKey, setSelectedEngineKey] = useState<DREngineType>('srm');
@@ -228,7 +233,7 @@ export const DRPlannerPage: React.FC = () => {
     ];
 
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryRows), 'DR Assessment Summary');
-    XLSX.writeFile(wb, `Zaboraa_DR_Assessment_${engine.id.toUpperCase()}.xlsx`);
+    XLSX.writeFile(wb, `${brandSlug}_DR_Assessment_${engine.id.toUpperCase()}.xlsx`);
   };
 
   // Export Formal Branded 2-Page Executive PDF report using jsPDF
@@ -258,7 +263,7 @@ export const DRPlannerPage: React.FC = () => {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
     doc.setTextColor(255, 255, 255);
-    doc.text('ZABORAA TECHNOLOGIES', margin, 12);
+    doc.text(brandUpper, margin, 12);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
@@ -441,7 +446,7 @@ export const DRPlannerPage: React.FC = () => {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
     doc.setTextColor(100, 116, 139);
-    doc.text('Page 1 of 2 // Zaboraa Technologies Enterprise BCDR Advisory', margin, pageHeight - 11);
+    doc.text(`Page 1 of 2 // ${effectiveBrand} Enterprise BCDR Advisory`, margin, pageHeight - 11);
     doc.text('CONFIDENTIAL // ISSUED FOR ARCHITECTURAL CERTIFICATION', pageWidth - margin - 75, pageHeight - 11);
 
     // ==========================================
@@ -458,7 +463,7 @@ export const DRPlannerPage: React.FC = () => {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
     doc.setTextColor(255, 255, 255);
-    doc.text('ZABORAA TECHNOLOGIES · RUNBOOK ORCHESTRATION', margin, 11);
+    doc.text(`${brandUpper} · RUNBOOK ORCHESTRATION`, margin, 11);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5);
@@ -618,10 +623,10 @@ export const DRPlannerPage: React.FC = () => {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
     doc.setTextColor(100, 116, 139);
-    doc.text('Page 2 of 2 // Zaboraa Technologies Enterprise BCDR Advisory', margin, pageHeight - 11);
+    doc.text(`Page 2 of 2 // ${effectiveBrand} Enterprise BCDR Advisory`, margin, pageHeight - 11);
     doc.text('CONFIDENTIAL // ISSUED FOR ARCHITECTURAL CERTIFICATION', pageWidth - margin - 75, pageHeight - 11);
 
-    doc.save(`Zaboraa_Executive_DR_Report_${engine.id.toUpperCase()}.pdf`);
+    doc.save(`${brandSlug}_Executive_DR_Report_${engine.id.toUpperCase()}.pdf`);
   };
 
   // Pass to Design Generator

@@ -32,6 +32,7 @@ export const Navbar: React.FC = () => {
   const location = useLocation();
   const {
     siteConfig,
+    brandName,
     theme,
     toggleTheme,
     isAdmin,
@@ -87,15 +88,17 @@ export const Navbar: React.FC = () => {
           <ZaboraaLogoMark sizeClass="w-8 h-8 sm:w-10 sm:h-10" />
           <span className="flex flex-col tracking-tight select-none">
             <span className="flex items-center gap-1.5 leading-none">
-              <span className="text-sm sm:text-base lg:text-lg font-black tracking-tight text-white font-sans group-hover:text-cyan-300 transition-colors">
-                ZABORAA
+              <span className="text-sm sm:text-base lg:text-lg font-black tracking-tight text-white font-sans group-hover:text-cyan-300 transition-colors uppercase">
+                {brandName.trim().split(/\s+/)[0] || brandName}
               </span>
-              <span className="text-[9px] sm:text-[10px] font-mono font-bold tracking-wider px-1 sm:px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 uppercase shadow-sm group-hover:border-cyan-400 group-hover:bg-cyan-900/60 transition-all">
-                TECHNOLOGIES
-              </span>
+              {brandName.trim().split(/\s+/).slice(1).join(' ') && (
+                <span className="text-[9px] sm:text-[10px] font-mono font-bold tracking-wider px-1 sm:px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 uppercase shadow-sm group-hover:border-cyan-400 group-hover:bg-cyan-900/60 transition-all">
+                  {brandName.trim().split(/\s+/).slice(1).join(' ')}
+                </span>
+              )}
             </span>
             <span className="text-[9px] font-mono tracking-widest text-slate-400 uppercase font-semibold mt-1 group-hover:text-cyan-300/80 transition-colors hidden xl:block">
-              Multi-Cloud VMware Architecture
+              {siteConfig.brandTagline || 'Multi-Cloud VMware Architecture'}
             </span>
           </span>
         </Link>

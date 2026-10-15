@@ -1,16 +1,47 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useCustomization } from '../context/CustomizationContext';
 
 interface ZaboraaLogoProps {
   size?: 'sm' | 'md' | 'lg';
   showText?: boolean;
   showSubtitle?: boolean;
   className?: string;
+  brandName?: string;
+  logoUrl?: string;
 }
 
-export const ZaboraaLogoMark: React.FC<{ sizeClass?: string; glow?: boolean }> = ({
+export const ZaboraaLogoMark: React.FC<{
+  sizeClass?: string;
+  glow?: boolean;
+  logoUrl?: string;
+  altText?: string;
+}> = ({
   sizeClass = 'w-9 h-9 sm:w-10 sm:h-10',
-  glow = true
+  glow = true,
+  logoUrl: propLogoUrl,
+  altText
 }) => {
+  const { brandLogoUrl, brandName } = useCustomization();
+  const effectiveLogoUrl = propLogoUrl !== undefined ? propLogoUrl : brandLogoUrl;
+  const [imageError, setImageError] = useState(false);
+
+  // If a custom logo image URL is configured and has not failed to load, render the custom image
+  if (effectiveLogoUrl && !imageError) {
+    return (
+      <div
+        className={`relative ${sizeClass} rounded-xl bg-slate-900/90 p-1 border border-cyan-500/30 group-hover:border-cyan-400/80 shadow-[0_0_15px_rgba(6,182,212,0.2)] group-hover:shadow-[0_0_25px_rgba(6,182,212,0.5)] transition-all duration-300 flex items-center justify-center shrink-0 overflow-hidden`}
+      >
+        <img
+          src={effectiveLogoUrl}
+          alt={altText || brandName || 'Brand Logo'}
+          onError={() => setImageError(true)}
+          className="w-full h-full object-contain rounded-lg"
+        />
+      </div>
+    );
+  }
+
+  // Otherwise, render the distinctive isometric SVG monogram mark
   return (
     <div
       className={`relative ${sizeClass} rounded-xl bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 p-1 border border-cyan-500/30 group-hover:border-cyan-400/80 shadow-[0_0_15px_rgba(6,182,212,0.2)] group-hover:shadow-[0_0_25px_rgba(6,182,212,0.5)] transition-all duration-300 flex items-center justify-center shrink-0 overflow-hidden`}
@@ -92,35 +123,50 @@ export const ZaboraaLogoMark: React.FC<{ sizeClass?: string; glow?: boolean }> =
   );
 };
 
+export const BrandLogoMark = ZaboraaLogoMark;
+
 export const ZaboraaLogo: React.FC<ZaboraaLogoProps> = ({
   size = 'md',
   showText = true,
   showSubtitle = true,
-  className = ''
+  className = '',
+  brandName: propBrandName,
+  logoUrl: propLogoUrl
 }) => {
+  const { brandName: contextBrandName, brandLogoUrl: contextLogoUrl, siteConfig } = useCustomization();
+  const effectiveBrandName = propBrandName || contextBrandName || 'Zaboraa Technologies';
+  const effectiveLogoUrl = propLogoUrl || contextLogoUrl;
+
   const sizeMap = {
     sm: 'w-7 h-7',
     md: 'w-9 h-9 sm:w-10 sm:h-10',
     lg: 'w-11 h-11 sm:w-12 sm:h-12'
   };
 
+  // Split words for modern high-tech wordmark styling
+  const words = effectiveBrandName.trim().split(/\s+/);
+  const primaryWord = words[0] || effectiveBrandName;
+  const secondaryWord = words.slice(1).join(' ');
+
   return (
     <div className={`flex items-center gap-3 group select-none ${className}`}>
-      <ZaboraaLogoMark sizeClass={sizeMap[size]} />
+      <ZaboraaLogoMark sizeClass={sizeMap[size]} logoUrl={effectiveLogoUrl} altText={effectiveBrandName} />
 
       {showText && (
         <span className="flex flex-col tracking-tight">
           <span className="flex items-center gap-1.5 leading-none">
-            <span className="text-base sm:text-lg font-black tracking-tight text-white font-sans group-hover:text-cyan-300 transition-colors">
-              ZABORAA
+            <span className="text-base sm:text-lg font-black tracking-tight text-white font-sans group-hover:text-cyan-300 transition-colors uppercase">
+              {primaryWord}
             </span>
-            <span className="text-[10px] font-mono font-bold tracking-wider px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 uppercase shadow-sm group-hover:border-cyan-400 group-hover:bg-cyan-900/60 transition-all">
-              CLOUD
-            </span>
+            {secondaryWord && (
+              <span className="text-[10px] font-mono font-bold tracking-wider px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 uppercase shadow-sm group-hover:border-cyan-400 group-hover:bg-cyan-900/60 transition-all">
+                {secondaryWord}
+              </span>
+            )}
           </span>
           {showSubtitle && (
             <span className="text-[9px] font-mono tracking-widest text-slate-400 uppercase font-semibold mt-1 group-hover:text-cyan-300/80 transition-colors hidden sm:block">
-              Enterprise VMware Architecture
+              {siteConfig.brandTagline || 'Enterprise VMware Architecture'}
             </span>
           )}
         </span>
@@ -128,3 +174,5 @@ export const ZaboraaLogo: React.FC<ZaboraaLogoProps> = ({
     </div>
   );
 };
+
+export const BrandLogo = ZaboraaLogo;

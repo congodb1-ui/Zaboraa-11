@@ -40,7 +40,7 @@ export const InteractiveHotspotImage: React.FC<InteractiveHotspotImageProps> = (
   onEnlarge,
   className = ''
 }) => {
-  const { siteConfig } = useCustomization();
+  const { siteConfig, brandName } = useCustomization();
   
   // Admin top setting: globally display or hide interactive hotspots
   // If disabled from top setting, it must not show hotspot anymore anywhere!
@@ -223,7 +223,7 @@ export const InteractiveHotspotImage: React.FC<InteractiveHotspotImageProps> = (
         ) : (
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-950/70 border border-slate-700/60 backdrop-blur-[2px] text-[10px] sm:text-xs font-mono font-bold tracking-widest text-slate-300 uppercase shadow-lg">
             <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
-            <span>{watermark?.text || 'ZABORAA TECHNOLOGIES · ARCHITECTURE BLUEPRINT'}</span>
+            <span>{watermark?.text || `${(brandName || siteConfig.brand || 'ENTERPRISE').toUpperCase()} · ARCHITECTURE BLUEPRINT`}</span>
           </div>
         )}
       </div>

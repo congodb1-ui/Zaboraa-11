@@ -242,7 +242,7 @@ const MainLayout: React.FC = () => {
 
 export default function App() {
   return (
-    <AuthErrorBoundary fallbackTitle="Zaboraa Enterprise Cloud Workspace">
+    <AuthErrorBoundary fallbackTitle="Enterprise Cloud Workspace">
       <AuthProvider>
         <CustomizationProvider>
           <BrowserRouter>

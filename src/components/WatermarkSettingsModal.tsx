@@ -16,6 +16,7 @@ import {
 export const WatermarkSettingsModal: React.FC = () => {
   const {
     siteConfig,
+    brandName,
     isWatermarkModalOpen,
     setIsWatermarkModalOpen,
     updateWatermarkConfig
@@ -24,7 +25,7 @@ export const WatermarkSettingsModal: React.FC = () => {
   const currentWatermark = siteConfig.watermark || {
     enabled: true,
     type: 'text',
-    text: 'ZABORAA TECHNOLOGIES · HYBRID CLOUD BLUEPRINT',
+    text: `${(brandName || siteConfig.brand || 'ENTERPRISE').toUpperCase()} · HYBRID CLOUD BLUEPRINT`,
     position: 'bottom-right',
     opacity: 0.35
   };
@@ -169,7 +170,7 @@ export const WatermarkSettingsModal: React.FC = () => {
                   type="text"
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  placeholder="e.g. ZABORAA TECHNOLOGIES · CONFIDENTIAL"
+                  placeholder={`e.g. ${(brandName || 'ENTERPRISE').toUpperCase()} · CONFIDENTIAL`}
                   className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs font-mono focus:outline-none focus:border-cyan-400"
                 />
               </div>

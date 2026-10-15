@@ -42,7 +42,7 @@ export const DiagramLightboxModal: React.FC<DiagramLightboxModalProps> = ({
   description,
   initialAnimated = true
 }) => {
-  const { siteConfig } = useCustomization();
+  const { siteConfig, brandName } = useCustomization();
   const isGloballyEnabled = siteConfig.enableHotspots === true;
 
   const [currentSrc, setCurrentSrc] = useState<string>(() => resolveMediaUrl(imageUrl));
@@ -302,7 +302,7 @@ export const DiagramLightboxModal: React.FC<DiagramLightboxModalProps> = ({
             <div className="absolute bottom-4 right-4 z-10 pointer-events-none select-none">
               <div className="flex items-center gap-1.5 px-3 py-1 rounded bg-slate-950/80 border border-slate-700/80 text-xs font-mono font-bold tracking-widest text-slate-300 uppercase shadow-xl backdrop-blur-sm">
                 <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
-                <span>{watermark?.text || 'ZABORAA TECHNOLOGIES · CERTIFIED BLUEPRINT'}</span>
+                <span>{watermark?.text || `${(brandName || siteConfig.brand || 'ENTERPRISE').toUpperCase()} · CERTIFIED BLUEPRINT`}</span>
               </div>
             </div>
           )}

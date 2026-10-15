@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useCustomization } from '../context/CustomizationContext';
 import { Phone, Calendar, ArrowRight, ShieldCheck, CheckCircle2, Award, Terminal, Camera, Sparkles } from 'lucide-react';
 
@@ -82,19 +83,13 @@ export const Hero: React.FC = () => {
                 <span>Call Direct: {founder.phone}</span>
               </a>
 
-              <a
-                href="#topology-viewer"
-                className="px-4 py-3 text-sm font-semibold text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1.5"
+              <Link
+                to="/tools/design-generator"
+                className="px-5 py-3 text-sm font-bold text-white bg-gradient-to-r from-cyan-600 via-indigo-600 to-cyan-600 hover:from-cyan-500 hover:to-indigo-500 border border-cyan-400/50 rounded-lg shadow-lg shadow-cyan-500/25 transition-all flex items-center gap-2 hover:scale-[1.02]"
               >
-                <span>⚡ Topology Viewer</span>
-              </a>
-
-              <a
-                href="#platforms-container"
-                className="px-4 py-3 text-sm font-medium text-slate-400 hover:text-white transition-colors"
-              >
-                Dedicated Architectures ↓
-              </a>
+                <Sparkles className="w-4 h-4 text-cyan-300" />
+                <span>Generate Architecture Blueprint</span>
+              </Link>
             </div>
 
             {/* Social Proof Numbers - Adjacent to Proposition */}

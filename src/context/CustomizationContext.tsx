@@ -72,8 +72,12 @@ interface CustomizationContextType {
   selectedVideo: VideoItem | null;
   setSelectedVideo: (video: VideoItem | null) => void;
   
+  brandName: string;
+  brandLogoUrl?: string;
+  updateBranding: (data: { brandName: string; brandLogoUrl?: string; brandTagline?: string }) => void;
+
   // Customization methods
-  updateGeneralInfo: (info: { brand: string; brandTagline: string; founder: SiteConfig['founder'] }) => void;
+  updateGeneralInfo: (info: { brand: string; brandTagline: string; brandLogoUrl?: string; founder: SiteConfig['founder'] }) => void;
   updateFounderPhoto: (portraitImage: string, photoStyle?: PhotoStyle) => void;
   setFeaturedVideoId: (id: string) => void;
   updatePlatformShowcase: (id: string, updated: Partial<PlatformShowcase>) => void;
@@ -130,6 +134,8 @@ export const CustomizationProvider: React.FC<{ children: React.ReactNode }> = ({
           const merged: SiteConfig = {
             ...INITIAL_SITE_DATA,
             ...parsed,
+            brand: parsed.brand || parsed.adminSettings?.brandName || INITIAL_SITE_DATA.brand,
+            brandLogoUrl: parsed.brandLogoUrl || parsed.adminSettings?.brandLogoUrl || undefined,
             founder: {
               ...INITIAL_SITE_DATA.founder,
               ...(parsed.founder || {})
@@ -296,6 +302,43 @@ export const CustomizationProvider: React.FC<{ children: React.ReactNode }> = ({
     root.setAttribute('data-ui-pattern', currentPattern);
   }, [theme, siteConfig.adminSettings]);
 
+  const brandName = siteConfig.brand || siteConfig.adminSettings?.brandName || 'Zaboraa Technologies';
+  const brandLogoUrl = siteConfig.brandLogoUrl || siteConfig.adminSettings?.brandLogoUrl;
+
+  const updateBranding = (data: { brandName: string; brandLogoUrl?: string; brandTagline?: string }) => {
+    setSiteConfig(prev => ({
+      ...prev,
+      brand: data.brandName,
+      brandLogoUrl: data.brandLogoUrl !== undefined ? data.brandLogoUrl : prev.brandLogoUrl,
+      brandTagline: data.brandTagline !== undefined ? data.brandTagline : prev.brandTagline,
+      adminSettings: {
+        ...(prev.adminSettings || INITIAL_SITE_DATA.adminSettings!),
+        brandName: data.brandName,
+        brandLogoUrl: data.brandLogoUrl !== undefined ? data.brandLogoUrl : prev.adminSettings?.brandLogoUrl
+      }
+    }));
+  };
+
+  // Dynamically synchronize document.title and meta descriptions with branding state
+  useEffect(() => {
+    const currentBrand = siteConfig.brand || 'Zaboraa Technologies';
+    const currentTagline = siteConfig.brandTagline || 'Enterprise VMware Cloud Architecture';
+    document.title = `${currentBrand} - ${currentTagline}`;
+
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+      metaDesc.setAttribute('content', `${currentBrand}: ${currentTagline}. Hyperscaler migration, interactive diagrams, video masterclasses, and software tutorials across Azure AVS, AWS VMC, and Google Cloud GCVE.`);
+    }
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    if (ogTitle) {
+      ogTitle.setAttribute('content', `${currentBrand} - ${currentTagline}`);
+    }
+    const ogDesc = document.querySelector('meta[property="og:description"]');
+    if (ogDesc) {
+      ogDesc.setAttribute('content', `${currentBrand}: ${currentTagline}. Hyperscaler migration, interactive diagrams, video masterclasses, and software tutorials.`);
+    }
+  }, [siteConfig.brand, siteConfig.brandTagline]);
+
   // Sync to localStorage with quota protection and fallback
   useEffect(() => {
     try {
@@ -320,6 +363,8 @@ export const CustomizationProvider: React.FC<{ children: React.ReactNode }> = ({
       const payloadToSave: Partial<SiteConfig> = {
         brand: siteConfig.brand,
         brandTagline: siteConfig.brandTagline,
+        brandLogoUrl: siteConfig.brandLogoUrl,
+        adminSettings: siteConfig.adminSettings,
         enableHotspots: siteConfig.enableHotspots,
         featuredVideoId: siteConfig.featuredVideoId,
         watermark: safeWatermark,
@@ -349,6 +394,8 @@ export const CustomizationProvider: React.FC<{ children: React.ReactNode }> = ({
         const minimalPayload = {
           brand: siteConfig.brand,
           brandTagline: siteConfig.brandTagline,
+          brandLogoUrl: siteConfig.brandLogoUrl,
+          adminSettings: siteConfig.adminSettings,
           enableHotspots: siteConfig.enableHotspots,
           founder: {
             name: siteConfig.founder.name,
@@ -396,12 +443,18 @@ export const CustomizationProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedTutorial, selectedDiagram, selectedVideo]);
 
-  const updateGeneralInfo = (info: { brand: string; brandTagline: string; founder: SiteConfig['founder'] }) => {
+  const updateGeneralInfo = (info: { brand: string; brandTagline: string; brandLogoUrl?: string; founder: SiteConfig['founder'] }) => {
     setSiteConfig(prev => ({
       ...prev,
       brand: info.brand,
       brandTagline: info.brandTagline,
-      founder: info.founder
+      brandLogoUrl: info.brandLogoUrl !== undefined ? info.brandLogoUrl : prev.brandLogoUrl,
+      founder: info.founder,
+      adminSettings: {
+        ...(prev.adminSettings || INITIAL_SITE_DATA.adminSettings!),
+        brandName: info.brand,
+        brandLogoUrl: info.brandLogoUrl !== undefined ? info.brandLogoUrl : prev.adminSettings?.brandLogoUrl
+      }
     }));
   };
 
@@ -698,6 +751,9 @@ export const CustomizationProvider: React.FC<{ children: React.ReactNode }> = ({
         setSelectedDiagram,
         selectedVideo,
         setSelectedVideo,
+        brandName,
+        brandLogoUrl,
+        updateBranding,
         updateGeneralInfo,
         updateFounderPhoto,
         setFeaturedVideoId,

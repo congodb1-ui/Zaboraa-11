@@ -412,7 +412,7 @@ export const PlatformEditorModal: React.FC = () => {
                       </button>
                       <span className="text-[11px] text-slate-500 flex items-center gap-1">
                         <Cloud className="w-3 h-3 text-cyan-500" />
-                        <span>Saves to Firebase & Supabase Storage with local backup</span>
+                        <span>Saves to Cloud Storage with local backup</span>
                       </span>
                     </div>
                   </div>

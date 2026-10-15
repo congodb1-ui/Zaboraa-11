@@ -5,12 +5,16 @@ import { ShieldCheck, Phone, Mail, ArrowUp, FolderGit2 } from 'lucide-react';
 import { ZaboraaLogoMark } from './ZaboraaLogo';
 
 export const Footer: React.FC = () => {
-  const { siteConfig, setIsBriefingModalOpen, setIsCustomizerOpen, setIsAdminLoginModalOpen, isAdmin } = useCustomization();
+  const { siteConfig, brandName, setIsBriefingModalOpen, setIsCustomizerOpen, setIsAdminLoginModalOpen, isAdmin } = useCustomization();
   const { founder } = siteConfig;
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  const words = (brandName || siteConfig.brand || 'Zaboraa Technologies').trim().split(/\s+/);
+  const primaryWord = words[0] || brandName;
+  const secondaryWord = words.slice(1).join(' ');
 
   return (
     <footer className="border-t border-slate-800 bg-slate-950 text-slate-400 text-xs">
@@ -21,11 +25,11 @@ export const Footer: React.FC = () => {
             <Link to="/" className="flex items-center gap-2.5 group">
               <ZaboraaLogoMark sizeClass="w-8 h-8" />
               <span className="flex flex-col tracking-tight">
-                <span className="text-sm sm:text-base font-black tracking-tight text-white font-sans group-hover:text-cyan-300 transition-colors">
-                  ZABORAA <span className="text-[10px] font-mono text-cyan-400 font-bold">TECH</span>
+                <span className="text-sm sm:text-base font-black tracking-tight text-white font-sans group-hover:text-cyan-300 transition-colors uppercase">
+                  {primaryWord} {secondaryWord && <span className="text-[10px] font-mono text-cyan-400 font-bold uppercase">{secondaryWord}</span>}
                 </span>
                 <span className="text-[8px] font-mono tracking-widest text-slate-500 uppercase">
-                  Cloud Architecture
+                  {siteConfig.brandTagline || 'Cloud Architecture'}
                 </span>
               </span>
             </Link>

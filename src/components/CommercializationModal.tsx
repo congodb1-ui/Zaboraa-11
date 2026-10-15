@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth, SubscriptionTier } from '../context/AuthContext';
+import { useCustomization } from '../context/CustomizationContext';
 import {
   X,
   CheckCircle2,
@@ -28,6 +29,7 @@ export const CommercializationModal: React.FC<CommercializationModalProps> = ({
   onClose,
   onOpenBriefing
 }) => {
+  const { brandName } = useCustomization();
   const {
     user,
     isAdmin,
@@ -66,7 +68,7 @@ export const CommercializationModal: React.FC<CommercializationModalProps> = ({
     clearAuthError();
     try {
       await signInWithGoogle();
-      setActionSuccess('Successfully authenticated via Supabase Google OAuth!');
+      setActionSuccess('Successfully authenticated via Google OAuth!');
       setTimeout(() => setActionSuccess(null), 3000);
     } catch {
       // Handled in context
@@ -97,7 +99,7 @@ export const CommercializationModal: React.FC<CommercializationModalProps> = ({
         setActionSuccess('Account successfully registered! Logged in.');
       } else {
         await loginWithEmail(emailInput.trim(), passwordInput);
-        setActionSuccess('Signed in successfully via Supabase!');
+        setActionSuccess('Signed in successfully!');
       }
       setTimeout(() => setActionSuccess(null), 3000);
     } catch {
@@ -190,7 +192,7 @@ export const CommercializationModal: React.FC<CommercializationModalProps> = ({
                 )}
               </div>
               <p className="text-xs text-slate-400">
-                Pure Supabase session management with Google OAuth and verified enterprise access.
+                Verified enterprise session management with Google OAuth and single sign-on access.
               </p>
             </div>
           </div>
@@ -247,7 +249,7 @@ export const CommercializationModal: React.FC<CommercializationModalProps> = ({
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-white text-sm">{user.displayName || 'Enterprise Architect'}</span>
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800 uppercase">
-                      Supabase {user.provider}
+                      Enterprise {user.provider}
                     </span>
                     {user.role === 'admin' && (
                       <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 uppercase font-bold">
@@ -309,18 +311,18 @@ export const CommercializationModal: React.FC<CommercializationModalProps> = ({
             {/* Primary Google Sign-In Action */}
             <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-3 shadow-inner">
               <div className="text-center sm:text-left space-y-1">
-                <h3 className="font-bold text-white text-sm">Sign In to Zaboraa Enterprise</h3>
+                <h3 className="font-bold text-white text-sm">Sign In to {brandName || 'Enterprise Architecture'}</h3>
                 <p className="text-slate-400 text-xs">
-                  Connect instantly using your verified enterprise Google account via Supabase Auth.
+                  Connect instantly using your verified enterprise Google account.
                 </p>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+              <div className="pt-2">
                 <button
                   type="button"
                   onClick={handleGoogleSignIn}
                   disabled={isSubmitting}
-                  className="w-full sm:flex-1 py-3 px-5 rounded-xl bg-white hover:bg-slate-100 text-slate-950 font-bold text-xs flex items-center justify-center gap-2.5 transition-all shadow-md cursor-pointer hover:scale-101 disabled:opacity-50"
+                  className="w-full py-3 px-5 rounded-xl bg-white hover:bg-slate-100 text-slate-950 font-bold text-xs flex items-center justify-center gap-2.5 transition-all shadow-md cursor-pointer hover:scale-[1.01] disabled:opacity-50"
                 >
                   <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -329,27 +331,6 @@ export const CommercializationModal: React.FC<CommercializationModalProps> = ({
                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                   </svg>
                   <span>{isSubmitting ? 'Authenticating...' : 'Continue with Google'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleGoogleRedirect}
-                  disabled={isSubmitting}
-                  className="w-full sm:w-auto px-4 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white font-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                  title="Redirect to Google OAuth consent page"
-                >
-                  <ExternalLink className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Redirect Flow</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleDemoSignIn}
-                  className="w-full sm:w-auto px-4 py-3 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/50 text-emerald-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm hover:scale-101"
-                  title="Instant demo architect mode"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Instant Demo</span>
                 </button>
               </div>
             </div>

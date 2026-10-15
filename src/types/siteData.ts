@@ -178,6 +178,8 @@ export interface AdminSettings {
   announcementLink: string;
   confidentialityClassification: string;
   clientName: string;
+  brandName?: string;
+  brandLogoUrl?: string;
   enableAuditTelemetry: boolean;
   publicAccessEnabled: boolean;
   authRequiredForTools: boolean;
@@ -219,6 +221,7 @@ export interface WatermarkConfig {
 export interface SiteConfig {
   brand: string;
   brandTagline: string;
+  brandLogoUrl?: string;
   enableHotspots?: boolean; // Top-level admin setting: globally enable or disable interactive hotspots across all diagrams
   featuredVideoId?: string;
   watermark?: WatermarkConfig;

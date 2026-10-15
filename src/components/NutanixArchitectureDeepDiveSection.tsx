@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useCustomization } from '../context/CustomizationContext';
 import { InteractiveHotspotImage } from './InteractiveHotspotImage';
 import {
   ENTERPRISE_WHITEPAPERS,
@@ -24,6 +25,7 @@ import {
 import { Link } from 'react-router-dom';
 
 export const NutanixArchitectureDeepDiveSection: React.FC = () => {
+  const { brandName } = useCustomization();
   // Whitepaper selection state for JSZip bundling
   const [selectedPaperIds, setSelectedPaperIds] = useState<string[]>(
     ENTERPRISE_WHITEPAPERS.map(w => w.id)
@@ -50,7 +52,8 @@ export const NutanixArchitectureDeepDiveSection: React.FC = () => {
     setIsZipping(true);
     setZipSuccessMessage(null);
     try {
-      await downloadWhitepapersZip(selectedPaperIds, 'Zaboraa_Nutanix_NC2_Architecture_Kit');
+      const cleanPrefix = (brandName || 'Enterprise').replace(/[^a-zA-Z0-9]/g, '_');
+      await downloadWhitepapersZip(selectedPaperIds, `${cleanPrefix}_Nutanix_NC2_Architecture_Kit`, brandName);
       setZipSuccessMessage(`Successfully packaged and downloaded ${selectedPaperIds.length} technical whitepapers.`);
       setTimeout(() => setZipSuccessMessage(null), 5000);
     } catch (err: any) {

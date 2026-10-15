@@ -67,7 +67,7 @@ export function exportDualCloudComparisonExcel(data: DualCloudComparisonData): v
   <Title>${projectName} - Side-by-Side Cloud Comparison</Title>
   <Author>${architectName}</Author>
   <Created>${new Date().toISOString()}</Created>
-  <Company>Zaboraa Technologies</Company>
+  <Company>Enterprise Cloud Architecture</Company>
  </DocumentProperties>
  <Styles>
   <Style ss:ID="Default" ss:Name="Normal">
@@ -188,7 +188,7 @@ export function exportDualCloudComparisonExcel(data: DualCloudComparisonData): v
    <!-- Header Rows -->
    <Row ss:Height="30">
     <Cell ss:MergeAcross="3" ss:StyleID="HeaderTitle">
-     <Data ss:Type="String">  ZABORAA TECHNOLOGIES · SIDE-BY-SIDE CLOUD SIZING COMPARISON</Data>
+     <Data ss:Type="String">  ENTERPRISE CLOUD ARCHITECTURE · SIDE-BY-SIDE CLOUD SIZING COMPARISON</Data>
     </Cell>
    </Row>
    <Row ss:Height="20">

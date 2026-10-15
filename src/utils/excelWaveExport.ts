@@ -76,7 +76,7 @@ export function exportColorCodedWavePlanExcel(options: ExcelExportOptions): void
   <Title>${customerName} - Cloud Migration Wave Plan</Title>
   <Author>${architectName}</Author>
   <Created>${new Date().toISOString()}</Created>
-  <Company>Zaboraa Technologies</Company>
+  <Company>Enterprise Architecture</Company>
  </DocumentProperties>
  <Styles>
   <!-- Base Default Style -->

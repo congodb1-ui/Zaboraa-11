@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useCustomization } from '../context/CustomizationContext';
 import { CloudProvider, ArchitectureDiagram, VideoItem, TutorialArticle } from '../types/siteData';
+import { ZaboraaLogoMark } from './ZaboraaLogo';
 import {
   X,
   Sliders,
@@ -39,6 +40,9 @@ import {
 export const CustomizerDrawer: React.FC = () => {
   const {
     siteConfig,
+    brandName,
+    brandLogoUrl,
+    updateBranding,
     theme,
     toggleTheme,
     isCustomizerOpen,
@@ -76,9 +80,11 @@ export const CustomizerDrawer: React.FC = () => {
   const [draggedDisciplineIndex, setDraggedDisciplineIndex] = useState<number | null>(null);
   const [dragOverDisciplineIndex, setDragOverDisciplineIndex] = useState<number | null>(null);
 
-  // General state
-  const [brand, setBrand] = useState(siteConfig.brand);
+  // General state & White-Label Branding
+  const [brand, setBrand] = useState(siteConfig.brand || brandName);
   const [tagline, setTagline] = useState(siteConfig.brandTagline);
+  const [brandLogo, setBrandLogo] = useState(siteConfig.brandLogoUrl || brandLogoUrl || '');
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [founderName, setFounderName] = useState(siteConfig.founder.name);
   const [founderRole, setFounderRole] = useState(siteConfig.founder.role);
   const [founderBio, setFounderBio] = useState(siteConfig.founder.bio);
@@ -125,11 +131,54 @@ export const CustomizerDrawer: React.FC = () => {
     setTimeout(() => setSaveStatus(''), 2500);
   };
 
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Logo image should be under 5MB.');
+      return;
+    }
+
+    setIsUploadingLogo(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = (uploadEvent) => {
+        const base64Url = typeof uploadEvent.target?.result === 'string' ? uploadEvent.target.result : '';
+        if (base64Url) {
+          setBrandLogo(base64Url);
+          showNotification('Logo uploaded and preview ready!');
+        }
+        setIsUploadingLogo(false);
+      };
+      reader.onerror = () => {
+        setIsUploadingLogo(false);
+        alert('Failed to read logo file.');
+      };
+      reader.readAsDataURL(file);
+    } catch {
+      setIsUploadingLogo(false);
+    }
+  };
+
+  const handleUpdateBranding = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const cleanBrand = brand.trim() || 'Zaboraa Technologies';
+    updateBranding({
+      brandName: cleanBrand,
+      brandLogoUrl: brandLogo.trim() || undefined,
+      brandTagline: tagline.trim()
+    });
+    showNotification('White-label branding updated and saved!');
+  };
+
   const handleSaveGeneral = (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanBrand = brand.trim() || 'Zaboraa Technologies';
     updateGeneralInfo({
-      brand,
+      brand: cleanBrand,
       brandTagline: tagline,
+      brandLogoUrl: brandLogo.trim() || undefined,
       founder: {
         ...siteConfig.founder,
         name: founderName,
@@ -140,7 +189,7 @@ export const CustomizerDrawer: React.FC = () => {
         location: founderLocation
       }
     });
-    showNotification('General information updated!');
+    showNotification('General information & branding updated!');
   };
 
   const handleSaveHero = (e: React.FormEvent) => {
@@ -1007,24 +1056,120 @@ export const CustomizerDrawer: React.FC = () => {
                 </button>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-slate-300 font-medium">Brand / Firm Name</label>
-                <input
-                  type="text"
-                  value={brand}
-                  onChange={e => setBrand(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-cyan-500"
-                />
-              </div>
+              {/* White-Label Firm Branding & Logo Studio */}
+              <div className="p-4 rounded-xl bg-slate-950 border border-cyan-500/40 space-y-4 shadow-lg">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-cyan-400" />
+                    <div>
+                      <h3 className="text-xs font-bold text-white uppercase tracking-wider">White-Label Branding & Firm Identity</h3>
+                      <p className="text-[11px] text-slate-400">Manage company name, slogan, and custom logo across entire site</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800 font-semibold uppercase">
+                    Live System
+                  </span>
+                </div>
 
-              <div className="space-y-1">
-                <label className="text-slate-300 font-medium">Tagline</label>
-                <input
-                  type="text"
-                  value={tagline}
-                  onChange={e => setTagline(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-cyan-500"
-                />
+                <div className="space-y-1">
+                  <label className="text-slate-300 font-semibold text-xs flex items-center justify-between">
+                    <span>Company / Firm Name</span>
+                    <span className="text-[10px] font-mono text-cyan-400">Replaces all hardcoded branding</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={brand}
+                    onChange={e => setBrand(e.target.value)}
+                    placeholder="e.g. Acme Cloud Technologies"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-cyan-500 text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-slate-300 font-semibold text-xs">Firm Tagline / Proposition</label>
+                  <input
+                    type="text"
+                    value={tagline}
+                    onChange={e => setTagline(e.target.value)}
+                    placeholder="e.g. Enterprise VMware & Multi-Cloud Architecture"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-cyan-500 text-xs"
+                  />
+                </div>
+
+                {/* Company Logo Upload & Real-Time Preview */}
+                <div className="space-y-2 pt-2 border-t border-slate-800/80">
+                  <label className="text-slate-300 font-semibold text-xs block">Company Logo</label>
+                  
+                  <div className="flex items-center gap-4 p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                    {/* Live Logo Preview Box */}
+                    <div className="w-14 h-14 rounded-xl border border-cyan-500/40 bg-slate-950 flex items-center justify-center p-1.5 shrink-0 shadow-inner overflow-hidden">
+                      {brandLogo ? (
+                        <img
+                          src={brandLogo}
+                          alt="Company Logo Preview"
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <ZaboraaLogoMark sizeClass="w-9 h-9" />
+                      )}
+                    </div>
+
+                    <div className="space-y-1.5 flex-1 text-xs">
+                      <div className="text-white font-medium text-[11px]">
+                        {brandLogo ? 'Custom Logo Active' : 'Default Isometric Architectural Mark Active'}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-950 hover:bg-cyan-900 border border-cyan-700 text-cyan-300 font-semibold text-xs cursor-pointer transition-colors shadow-sm">
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>{isUploadingLogo ? 'Processing...' : 'Upload Logo File'}</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleLogoUpload}
+                            className="hidden"
+                          />
+                        </label>
+
+                        {brandLogo && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setBrandLogo('');
+                              showNotification('Logo cleared; using default mark');
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs border border-slate-700 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                            <span>Remove</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Fallback Direct Image URL or Data URL Input */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-slate-400 font-mono">Or paste custom image URL / Base64:</span>
+                    <input
+                      type="text"
+                      value={brandLogo}
+                      onChange={e => setBrandLogo(e.target.value)}
+                      placeholder="https://... or data:image/png;base64,..."
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white font-mono text-[11px] focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateBranding()}
+                    className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs rounded-lg shadow-md transition-all flex items-center gap-1.5 cursor-pointer hover:scale-[1.02]"
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Update Branding & Logo</span>
+                  </button>
+                </div>
               </div>
 
               {/* Founder Profile Photo Section */}
@@ -1727,7 +1872,7 @@ export const CustomizerDrawer: React.FC = () => {
                   <span>Restore Factory Defaults</span>
                 </div>
                 <p className="text-rose-200/70">
-                  Revert all content, diagrams, tutorials, and videos back to original Zaboraa Technologies defaults.
+                  Revert all content, diagrams, tutorials, and videos back to original factory defaults.
                 </p>
                 <button
                   onClick={() => {
