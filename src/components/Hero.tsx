@@ -1,10 +1,18 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useCustomization } from '../context/CustomizationContext';
-import { Phone, Calendar, ArrowRight, ShieldCheck, CheckCircle2, Award, Terminal, Camera, Sparkles } from 'lucide-react';
+import { Phone, Calendar, ArrowRight, ShieldCheck, CheckCircle2, Award, Terminal, Camera, Sparkles, Edit3, BarChart3 } from 'lucide-react';
+import { TiltCard } from './TiltCard';
 
 export const Hero: React.FC = () => {
-  const { siteConfig, setIsBriefingModalOpen, setIsPhotoEditorOpen, isAdmin } = useCustomization();
+  const {
+    siteConfig,
+    setIsBriefingModalOpen,
+    setIsPhotoEditorOpen,
+    isAdmin,
+    setIsFounderModalOpen,
+    setIsHeroStatsModalOpen
+  } = useCustomization();
   const { hero, founder } = siteConfig;
 
   const photoStyle = founder.photoStyle || {
@@ -49,7 +57,10 @@ export const Hero: React.FC = () => {
               <span className="text-slate-400">NDA READY</span>
               <span aria-hidden="true" className="text-slate-600">·</span>
               <span className="text-emerald-400 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-radar-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
                 &lt; 2 HRS RESPONSE
               </span>
             </div>
@@ -65,10 +76,10 @@ export const Hero: React.FC = () => {
             </p>
 
             {/* Interactive CTAs */}
-            <div className="flex flex-wrap items-center gap-4 pt-2">
+            <div className="flex flex-wrap items-center gap-3 pt-2">
               <button
                 onClick={() => setIsBriefingModalOpen(true)}
-                className="px-5 py-3 text-sm font-semibold text-slate-950 bg-cyan-400 hover:bg-cyan-300 rounded-lg shadow-lg shadow-cyan-500/20 transition-all flex items-center gap-2"
+                className="px-5 py-3 text-sm font-semibold text-slate-950 bg-cyan-400 hover:bg-cyan-300 rounded-lg shadow-lg shadow-cyan-500/20 transition-all flex items-center gap-2 cursor-pointer"
               >
                 <Calendar className="w-4 h-4" />
                 <span>Schedule Architecture Briefing</span>
@@ -93,44 +104,67 @@ export const Hero: React.FC = () => {
             </div>
 
             {/* Social Proof Numbers - Adjacent to Proposition */}
-            <div className="pt-8 border-t border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-6">
-              {hero.stats.map((stat, idx) => (
-                <div key={idx} className="space-y-1">
-                  <div className="text-2xl sm:text-3xl font-bold text-white font-mono tabular-nums">
-                    {stat.value}
+            <div className="pt-8 border-t border-slate-800/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-semibold">
+                  Executive Proof Metrics
+                </span>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => setIsHeroStatsModalOpen(true)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700 text-cyan-300 text-[10px] font-mono font-semibold transition cursor-pointer"
+                  >
+                    <Edit3 className="w-3 h-3 text-cyan-400" />
+                    <span>Edit Metrics</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
+                {hero.stats.map((stat, idx) => (
+                  <div key={idx} className="space-y-1">
+                    <div className="text-2xl sm:text-3xl font-bold text-white font-mono tabular-nums">
+                      {stat.value}
+                    </div>
+                    <div className="text-xs text-slate-400 leading-snug">
+                      {stat.label}
+                    </div>
                   </div>
-                  <div className="text-xs text-slate-400 leading-snug">
-                    {stat.label}
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* Right Column: Founder Authority Card */}
+          {/* Right Column: Founder Authority Card with Tilt */}
           <div className="lg:col-span-5">
-            <div
-              data-theme-container="dark"
-              className="relative rounded-2xl border border-slate-800 bg-slate-900/95 p-6 sm:p-8 shadow-2xl backdrop-blur-md dark-card dark-feature-container hero-dark-card overflow-hidden group/hero"
-            >
-              {/* Subtle pulsating cyber glow and ambient radial aura */}
-              <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-72 h-72 bg-gradient-to-tr from-cyan-500/20 via-emerald-500/15 to-transparent rounded-full blur-3xl pointer-events-none animate-pulse" />
+            <TiltCard maxTilt={5} className="h-full">
+              <div
+                data-theme-container="dark"
+                className="relative rounded-2xl border border-slate-800 bg-slate-900/95 p-6 sm:p-8 shadow-2xl backdrop-blur-md dark-card dark-feature-container hero-dark-card overflow-hidden group/hero"
+              >
+                {/* Subtle pulsating cyber glow and ambient radial aura */}
+                <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-72 h-72 bg-gradient-to-tr from-cyan-500/20 via-emerald-500/15 to-transparent rounded-full blur-3xl pointer-events-none animate-pulse" />
 
-              {/* Subtle top indicator */}
-              <div className="relative z-10 flex items-center justify-between pb-4 border-b border-slate-800/80">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-cyan-400" />
-                  <span className="text-xs font-semibold text-slate-300">
-                    Lead Principal Architect
-                  </span>
+                {/* Subtle top indicator */}
+                <div className="relative z-10 flex items-center justify-between pb-4 border-b border-slate-800/80">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-cyan-400" />
+                    <span className="text-xs font-semibold text-slate-300">
+                      Lead Principal Architect
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-mono">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-radar-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                    </span>
+                    <span>ACTIVE AVAILABILITY</span>
+                  </div>
                 </div>
-                <div className="text-xs text-slate-400 font-mono">
-                  ACTIVE AVAILABILITY
-                </div>
-              </div>
 
-              {/* Founder Header with Large Circular Avatar & Dynamic Radial Cyber Border */}
-              <div className="relative z-10 mt-6 flex flex-col items-center text-center">
+                {/* Founder Header with Large Circular Avatar & Dynamic Radial Cyber Border */}
+                <div className="relative z-10 mt-6 flex flex-col items-center text-center">
                 {/* Circular Expanded Avatar */}
                 <div
                   className={`relative group/avatar ${isAdmin ? 'cursor-pointer' : ''}`}
@@ -206,9 +240,18 @@ export const Hero: React.FC = () => {
                     {founder.location}
                   </p>
 
-                  {/* Quick Photo Customizer Action - Only visible for Admin */}
+                  {/* Quick Customizer Actions - Only visible for Admin */}
                   {isAdmin && (
-                    <div className="pt-2 flex items-center justify-center gap-2">
+                    <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsFounderModalOpen(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-emerald-300 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/50 hover:border-emerald-400 transition-all shadow-sm cursor-pointer"
+                        title="Edit founder title, bio, experience, and verified certifications"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Edit Credentials & Bio</span>
+                      </button>
                       <button
                         type="button"
                         onClick={() => setIsPhotoEditorOpen(true)}
@@ -230,8 +273,17 @@ export const Hero: React.FC = () => {
 
               {/* Certifications & Badges */}
               <div className="relative z-10 mt-5 space-y-2">
-                <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                  Verified Specializations
+                <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400 uppercase tracking-wider font-mono">
+                  <span>Verified Specializations</span>
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => setIsFounderModalOpen(true)}
+                      className="text-cyan-400 hover:text-cyan-300 text-[10px] lowercase font-sans cursor-pointer underline"
+                    >
+                      manage certifications
+                    </button>
+                  )}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {founder.certifications.map((cert, i) => (
@@ -257,6 +309,7 @@ export const Hero: React.FC = () => {
                 </a>
               </div>
             </div>
+            </TiltCard>
           </div>
         </div>
       </div>

@@ -66,12 +66,18 @@ export const CustomizerDrawer: React.FC = () => {
     deleteVideo,
     addTutorial,
     deleteTutorial,
+    setIsTrackRecordModalOpen,
+    setActiveEditCaseStudy,
+    deleteCaseStudy,
+    reorderCaseStudies,
+    setIsFounderModalOpen,
+    setIsHeroStatsModalOpen,
     resetToDefaults,
     exportConfigJson,
     importConfigJson
   } = useCustomization();
 
-  const [activeTab, setActiveTab] = useState<'general' | 'appearance' | 'hero' | 'platforms' | 'videos' | 'tutorials' | 'backup'>('appearance');
+  const [activeTab, setActiveTab] = useState<'appearance' | 'track-records' | 'general' | 'hero' | 'platforms' | 'videos' | 'tutorials' | 'backup'>('appearance');
   const [saveStatus, setSaveStatus] = useState<string>('');
   const [importText, setImportText] = useState<string>('');
   const [importError, setImportError] = useState<string>('');
@@ -395,6 +401,7 @@ export const CustomizerDrawer: React.FC = () => {
         <div className="flex overflow-x-auto border-b border-slate-800 bg-slate-950/50 p-1.5 gap-1 text-xs">
           {[
             { id: 'appearance', label: 'UI Designs & Themes', icon: Palette },
+            { id: 'track-records', label: 'Track Records & Credentials', icon: Shield },
             { id: 'general', label: 'General & Founder', icon: User },
             { id: 'hero', label: 'Hero Copy', icon: Sliders },
             { id: 'platforms', label: 'Dedicated Architectures', icon: Layers },
@@ -946,6 +953,201 @@ export const CustomizerDrawer: React.FC = () => {
                   <Trash2 className="w-3.5 h-3.5 text-rose-400" />
                   <span>One-Click Full Factory Reset</span>
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: TRACK RECORDS & HOMEPAGE CREDENTIALS */}
+          {activeTab === 'track-records' && (
+            <div className="space-y-6 text-xs">
+              {/* Informational Banner */}
+              <div className="p-4 rounded-xl bg-slate-950 border border-emerald-500/30 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-emerald-400" />
+                    <h3 className="text-sm font-bold text-white">Verified Enterprise Track Record Studio</h3>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
+                    Admin Exclusive
+                  </span>
+                </div>
+                <p className="text-slate-400 leading-relaxed text-[11px]">
+                  Create, edit, reorder, or delete verified production case studies. Changes reflect instantly on the homepage and case studies portal with full persistence.
+                </p>
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveEditCaseStudy(null);
+                      setIsTrackRecordModalOpen(true);
+                    }}
+                    className="w-full py-2.5 px-4 rounded-lg bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 transition-all cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Create New Enterprise Case Study</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Case Studies List */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-200 uppercase tracking-wider text-xs">
+                    Current Track Records ({(siteConfig.caseStudies || []).length})
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-mono">
+                    Reorder or Edit Full Case Study
+                  </span>
+                </div>
+
+                <div className="space-y-2.5">
+                  {(siteConfig.caseStudies || []).map((study, idx) => (
+                    <div
+                      key={study.id}
+                      className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-slate-700 transition-colors space-y-3"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[10px] font-mono font-bold text-cyan-400 uppercase px-2 py-0.5 rounded bg-cyan-950/80 border border-cyan-800/80">
+                              {study.sector}
+                            </span>
+                            <span className="text-[10px] font-mono text-emerald-400 px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-800/60 flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                              <span>{study.verifiedBadge || 'VERIFIED'}</span>
+                            </span>
+                          </div>
+                          <h4 className="font-bold text-white text-xs leading-snug">
+                            {study.title}
+                          </h4>
+                          <p className="text-[11px] text-slate-400 line-clamp-2">
+                            {study.summary}
+                          </p>
+                        </div>
+
+                        {/* Card Actions */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          {/* Reorder Up */}
+                          <button
+                            type="button"
+                            disabled={idx === 0}
+                            onClick={() => reorderCaseStudies(idx, idx - 1)}
+                            className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                            title="Move Up"
+                          >
+                            <ChevronUp className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* Reorder Down */}
+                          <button
+                            type="button"
+                            disabled={idx === (siteConfig.caseStudies || []).length - 1}
+                            onClick={() => reorderCaseStudies(idx, idx + 1)}
+                            className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                            title="Move Down"
+                          >
+                            <ChevronDown className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* Edit */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveEditCaseStudy(study);
+                              setIsTrackRecordModalOpen(true);
+                            }}
+                            className="px-2.5 py-1.5 rounded-lg bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-800 text-cyan-300 font-semibold text-xs flex items-center gap-1 cursor-pointer"
+                            title="Edit Case Study"
+                          >
+                            <span>Edit</span>
+                          </button>
+
+                          {/* Delete */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm(`Delete track record "${study.title}"?`)) {
+                                deleteCaseStudy(study.id);
+                                showNotification('Track record deleted.');
+                              }
+                            }}
+                            className="p-1.5 rounded-lg bg-rose-950/50 hover:bg-rose-900 border border-rose-800/60 text-rose-300 hover:text-white cursor-pointer"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Quantitative Metrics Summary Strip */}
+                      <div className="grid grid-cols-4 gap-2 pt-1 border-t border-slate-800/70 text-[10px] font-mono text-slate-300">
+                        <div className="p-1.5 rounded bg-slate-900">
+                          <span className="text-slate-500 block uppercase">Workloads</span>
+                          <span className="font-bold text-white truncate block">{study.metrics.vms}</span>
+                        </div>
+                        <div className="p-1.5 rounded bg-slate-900">
+                          <span className="text-slate-500 block uppercase">Downtime</span>
+                          <span className="font-bold text-emerald-400 truncate block">{study.metrics.downtime}</span>
+                        </div>
+                        <div className="p-1.5 rounded bg-slate-900">
+                          <span className="text-slate-500 block uppercase">Cost</span>
+                          <span className="font-bold text-cyan-300 truncate block">{study.metrics.costReduction}</span>
+                        </div>
+                        <div className="p-1.5 rounded bg-slate-900">
+                          <span className="text-slate-500 block uppercase">Timeline</span>
+                          <span className="font-bold text-white truncate block">{study.metrics.timeline}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Homepage Field Quick Triggers */}
+              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-4">
+                <span className="font-bold text-white text-xs uppercase tracking-wider block">
+                  Homepage Credentials & Specialization Studios
+                </span>
+
+                <div className="space-y-3">
+                  {/* Founder Profile Studio */}
+                  <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between gap-3">
+                    <div>
+                      <h4 className="text-white font-semibold text-xs">
+                        Lead Architect Credentials & Certifications
+                      </h4>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        {siteConfig.founder.name} · {siteConfig.founder.certifications.length} verified badges (VCDX, Multi-Cloud)
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsFounderModalOpen(true)}
+                      className="px-3 py-1.5 rounded-lg bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-bold text-xs shrink-0 cursor-pointer"
+                    >
+                      Edit Credentials
+                    </button>
+                  </div>
+
+                  {/* Hero Proof Metrics Studio */}
+                  <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between gap-3">
+                    <div>
+                      <h4 className="text-white font-semibold text-xs">
+                        Executive Social Proof Numbers (Hero Stats)
+                      </h4>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        {siteConfig.hero.stats.map(s => s.value).join(' · ')}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsHeroStatsModalOpen(true)}
+                      className="px-3 py-1.5 rounded-lg bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-bold text-xs shrink-0 cursor-pointer"
+                    >
+                      Edit Metrics
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}

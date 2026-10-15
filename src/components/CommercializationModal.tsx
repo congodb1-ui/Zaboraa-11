@@ -179,11 +179,7 @@ export const CommercializationModal: React.FC<CommercializationModalProps> = ({
                   Architect Authentication & Access
                 </h2>
                 <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-800 uppercase">
-                  {subscriptionTier === 'enterprise'
-                    ? 'ENTERPRISE'
-                    : subscriptionTier === 'pro'
-                    ? 'PRO ARCHITECT'
-                    : 'COMMUNITY FREE'}
+                  {user ? 'VERIFIED ARCHITECT' : 'ENTERPRISE SSO'}
                 </span>
                 {isAdmin && (
                   <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 uppercase">
@@ -238,33 +234,38 @@ export const CommercializationModal: React.FC<CommercializationModalProps> = ({
                   <img
                     src={user.photoURL}
                     alt={user.displayName || 'Architect'}
-                    className="w-10 h-10 rounded-full border border-cyan-500/60 object-cover"
+                    className="w-11 h-11 rounded-full border border-cyan-500/60 object-cover"
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800 flex items-center justify-center font-bold font-mono text-sm">
+                  <div className="w-11 h-11 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800 flex items-center justify-center font-bold font-mono text-base">
                     {(user.displayName || user.email || 'A').charAt(0).toUpperCase()}
                   </div>
                 )}
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-bold text-white text-sm">{user.displayName || 'Enterprise Architect'}</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800 uppercase">
-                      Enterprise {user.provider}
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 uppercase font-semibold flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                      <span>SSO Active</span>
                     </span>
                     {user.role === 'admin' && (
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 uppercase font-bold">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800 uppercase font-bold">
                         Admin
                       </span>
                     )}
                   </div>
-                  <div className="text-slate-400 text-xs">{user.email || 'N/A'}</div>
+                  <div className="text-slate-400 text-xs mt-0.5 font-mono">{user.email || 'N/A'}</div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   type="button"
-                  onClick={signOut}
+                  onClick={async () => {
+                    await signOut();
+                    setActionSuccess('Signed out successfully.');
+                    setTimeout(() => setActionSuccess(null), 2000);
+                  }}
                   className="px-3.5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5 text-rose-400" />
@@ -273,35 +274,37 @@ export const CommercializationModal: React.FC<CommercializationModalProps> = ({
               </div>
             </div>
 
-            {/* Subscription & Capabilities Info */}
-            <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
+            {/* Enterprise Security & Access Overview */}
+            <div className="p-4 rounded-xl bg-slate-950 border border-slate-800/90 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-white text-xs uppercase tracking-wider">
-                  Active Subscription Tier: {subscriptionTier.toUpperCase()}
+                <span className="font-bold text-white text-xs tracking-wider uppercase font-mono">
+                  Enterprise Architecture Access
                 </span>
-                <span className="text-[11px] text-emerald-400 flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  All Enterprise Calculators & Tools Unlocked
+                <span className="text-[11px] text-emerald-400 flex items-center gap-1 font-mono">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>All Sizing Calculators & Blueprints Unlocked</span>
                 </span>
               </div>
-              <div className="grid grid-cols-3 gap-2 pt-1">
-                {(['free', 'pro', 'enterprise'] as SubscriptionTier[]).map((tier) => (
-                  <button
-                    key={tier}
-                    type="button"
-                    onClick={() => handleSelectTier(tier)}
-                    className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
-                      subscriptionTier === tier
-                        ? 'bg-cyan-950 border-cyan-500 text-white font-bold'
-                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <span className="block text-xs uppercase font-mono">{tier}</span>
-                    <span className="text-[10px] text-slate-400">
-                      {tier === 'enterprise' ? 'Full Suite' : tier === 'pro' ? 'Advanced' : 'Basic'}
-                    </span>
-                  </button>
-                ))}
+              <p className="text-xs text-slate-300 leading-relaxed">
+                You are authenticated with single sign-on enterprise credentials. Sizing engines, RVTools migration wave parsers, Nutanix NC2 assessments, Aria flow analytics, and 4K blueprint generation are fully active.
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[11px] font-mono text-slate-300">
+                <div className="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800">
+                  <div className="text-[10px] text-slate-500 uppercase">Provider</div>
+                  <div className="font-bold text-cyan-300 mt-0.5 capitalize">{user.provider}</div>
+                </div>
+                <div className="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800">
+                  <div className="text-[10px] text-slate-500 uppercase">Security Token</div>
+                  <div className="font-bold text-emerald-400 mt-0.5">TLS 1.3 / PKCE</div>
+                </div>
+                <div className="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800">
+                  <div className="text-[10px] text-slate-500 uppercase">Calculators</div>
+                  <div className="font-bold text-white mt-0.5">6 Production Tools</div>
+                </div>
+                <div className="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800">
+                  <div className="text-[10px] text-slate-500 uppercase">Session Status</div>
+                  <div className="font-bold text-emerald-400 mt-0.5">Active</div>
+                </div>
               </div>
             </div>
           </div>

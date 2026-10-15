@@ -204,6 +204,100 @@ export const INDUSTRY_PRESETS: IndustryTemplatePreset[] = [
       },
       activeTemplate: 'gcve'
     })
+  },
+  {
+    id: 'carrier-interconnect',
+    title: 'Physical Carrier Interconnects',
+    subtitle: 'MSEE & DirectConnect + Meet-Me Cage',
+    tag: 'Physical Topology',
+    tagColor: 'bg-cyan-950 text-cyan-300 border-cyan-800',
+    apply: (prev) => ({
+      ...prev,
+      footprintScope: 'hybrid-multi',
+      connectivityCarrier: 'Direct Circuits with FastPath / Global Reach',
+      landingZonePattern: 'Azure Virtual WAN Hub-and-Spoke',
+      firewallMode: 'dual-layer',
+      firewallProvider: 'Palo Alto Networks VM-Series',
+      targetPlatform: 'avs-gen2',
+      targetNodeSku: 'AV64',
+      targetNodeCount: 4,
+      sddcMgmtCidr: '10.240.0.0/22',
+      activeTemplate: 'carrier-interconnect' as any
+    })
+  },
+  {
+    id: 'transit-hub',
+    title: 'Transit Hub & Dynamic BGP',
+    subtitle: 'vWAN Hub + Route Server + TGW + Tier-0 ECMP',
+    tag: 'Hub-and-Spoke',
+    tagColor: 'bg-indigo-950 text-indigo-300 border-indigo-800',
+    apply: (prev) => ({
+      ...prev,
+      footprintScope: 'hybrid-multi',
+      connectivityCarrier: 'Direct Circuits with FastPath / Global Reach',
+      landingZonePattern: 'Azure Virtual WAN Hub-and-Spoke',
+      firewallMode: 'nva',
+      firewallProvider: 'Fortinet FortiGate-VM',
+      wafEnabled: true,
+      wafSolution: 'Azure WAF on Application Gateway',
+      targetPlatform: 'avs-gen2',
+      targetNodeSku: 'AV64',
+      targetNodeCount: 4,
+      sddcMgmtCidr: '10.240.0.0/22',
+      activeTemplate: 'transit-hub' as any
+    })
+  },
+  {
+    id: 'microseg-security',
+    title: 'Zero-Trust Microsegmentation',
+    subtitle: 'NSX DFW + Dual-Layer NVA + App Gateway WAF',
+    tag: 'Zero-Trust Security',
+    tagColor: 'bg-emerald-950 text-emerald-300 border-emerald-800',
+    apply: (prev) => ({
+      ...prev,
+      footprintScope: 'hybrid-multi',
+      firewallMode: 'dual-layer',
+      firewallProvider: 'Palo Alto Networks VM-Series',
+      dualLayerInspectionFlow: 'sequential',
+      wafEnabled: true,
+      wafSolution: 'Azure WAF on Application Gateway',
+      sourceHypervisorConfig: {
+        ...prev.sourceHypervisorConfig,
+        nsxEnabled: true,
+        nsxVersion: '4.2.x'
+      },
+      targetPlatform: 'avs-gen2',
+      targetNodeSku: 'AV64',
+      targetNodeCount: 4,
+      sddcMgmtCidr: '10.240.0.0/22',
+      activeTemplate: 'microseg-security' as any
+    })
+  },
+  {
+    id: 'storage-dr',
+    title: 'Decoupled Storage & DR Flows',
+    subtitle: 'ANF / FSx ONTAP + SRM + HCX RAV Zero-RPO',
+    tag: 'Decoupled Storage & DR',
+    tagColor: 'bg-purple-950 text-purple-300 border-purple-800',
+    apply: (prev) => ({
+      ...prev,
+      footprintScope: 'hybrid-multi',
+      decoupledStorageEnabled: true,
+      decoupledStorageTB: 150,
+      decoupledStorageProvider: 'Azure NetApp Files (ANF NFS Datastore)',
+      drEnabled: true,
+      drConfig: {
+        engine: 'VMware Site Recovery Manager (SRM) + vSphere Replication',
+        rpoMinutes: 0,
+        rtoMinutes: 15,
+        strategy: 'Warm Standby (Full Cluster)'
+      },
+      targetPlatform: 'avs-gen2',
+      targetNodeSku: 'AV64',
+      targetNodeCount: 4,
+      sddcMgmtCidr: '10.240.0.0/22',
+      activeTemplate: 'storage-dr' as any
+    })
   }
 ];
 

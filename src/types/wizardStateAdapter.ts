@@ -361,10 +361,20 @@ export function mapWizardToLegacy(
   return { model, legacyPatch };
 }
 
+export type FocusedBlueprintTemplate =
+  | 'standard'
+  | 'carrier-interconnect'
+  | 'transit-hub'
+  | 'microseg-security'
+  | 'storage-dr';
+
 /**
- * Builds the deterministic prompt string for Gemini Imagen 3.
- * When drEnabled is false, excludes inactive DR configuration and renders:
- * "Business Continuity: DR not in scope for current architecture tier"
+ * Builds the deterministic prompt string for Gemini Imagen 3 with clutter-free topology precision.
+ * Supports 4 focused infrastructure environment tracks:
+ * 1. Physical Carrier Interconnects & Direct Peering Circuits
+ * 2. Transit Hub-and-Spoke & Dynamic BGP Routing
+ * 3. Zero-Trust Microsegmentation & Distributed Firewalling
+ * 4. Decoupled Storage & Disaster Recovery Replication Flows
  */
 export function buildActivePromptString(params: {
   trackTitle: string;
@@ -383,6 +393,7 @@ export function buildActivePromptString(params: {
   drRpoMinutes?: number;
   drRtoMinutes?: number;
   drStrategy?: string;
+  blueprintTemplate?: FocusedBlueprintTemplate | string;
 }): string {
   const drClause = params.drEnabled
     ? `Business Continuity & Resilience: Replicated via ${params.drEngine} with ${
@@ -390,5 +401,18 @@ export function buildActivePromptString(params: {
       }, ${params.drRtoMinutes}-minute RTO, disaster recovery strategy "${params.drStrategy}".`
     : `Business Continuity: Disaster recovery not in scope for current architecture tier (standalone single-site topology).`;
 
-  return `Dark enterprise blueprint aesthetic 3D isometric architectural diagram of a production enterprise multi-cloud topology: "${params.trackTitle}" for ${params.customerName} (Lead Architect: ${params.architectName}, Date: ${params.projectDate}). Deep slate and midnight navy canvas background (#020617) with glowing neon cyan, teal, emerald, and electric violet network routes, glowing 3D hardware chassis, hyper-detailed isometric platform annotations. Infrastructure Environment Tiers: ${params.envDescriptions}. Network Interconnect Backbone: ${params.linkDescriptions}. Perimeter Security & Landing Zone: Physical connectivity via ${params.connectivity}, Landing Zone pattern "${params.landingZone}", Next-Gen Firewall inspection by ${params.nvaFirewall}, Web Application Firewall "${params.wafSolution}". Decoupled Storage Tier: ${params.storageNote}. ${drClause} Isometric orthographic 3D projection, photorealistic enterprise blueprint technical drawing, illuminated fiber optic paths, 4K presentation grade clarity.`;
+  let templateSpecialization = '';
+  if (params.blueprintTemplate === 'carrier-interconnect') {
+    templateSpecialization = 'Specialized Focus: Physical Carrier Interconnects and Direct Peering Circuits. Emphasize telco meet-me rooms, dark fiber paths, redundant MSEE / DirectConnect routers, 10G/100G dedicated cross-connects, MTU 9000 jumbo frame paths, and physical demarcation points.';
+  } else if (params.blueprintTemplate === 'transit-hub') {
+    templateSpecialization = 'Specialized Focus: Transit Hub-and-Spoke and Dynamic BGP Routing. Emphasize regional Virtual WAN Hubs, Azure Route Server, AWS Transit Gateway, Google Cloud Router, Tier-0 ECMP active-active routes, and transitive route propagation.';
+  } else if (params.blueprintTemplate === 'microseg-security') {
+    templateSpecialization = 'Specialized Focus: Zero-Trust Microsegmentation and Distributed Firewalling. Emphasize NSX Distributed Firewall (DFW) East-West security boundaries, Next-Gen NVA inspection pools, Application Gateway WAF zones, and isolated security tiers.';
+  } else if (params.blueprintTemplate === 'storage-dr') {
+    templateSpecialization = 'Specialized Focus: Decoupled Storage and Disaster Recovery Replication Flows. Emphasize external NFS datastores (Azure NetApp Files, Amazon FSx ONTAP), stretched SDDC clusters, VMware Site Recovery Manager (SRM) protection groups, and HCX RAV zero-RPO data paths.';
+  }
+
+  const clutterFreeRule = 'Style: Ultra-clean minimalist enterprise cloud blueprint. Strict visual hierarchy. Clear, organized component blocks with generous breathing room. Connect only vital architectural hops with illuminated neon paths; eliminate all spurious background lines, decorative clutter, cross-hatches, and tangled webs. Precise isometric orthographic perspective with high-legibility typographic callouts.';
+
+  return `Dark enterprise blueprint aesthetic 3D isometric architectural diagram of a production enterprise multi-cloud topology: "${params.trackTitle}" for ${params.customerName} (Lead Architect: ${params.architectName}, Date: ${params.projectDate}). Deep slate and midnight navy canvas background (#020617) with glowing neon cyan, teal, emerald, and electric violet network routes, glowing 3D hardware chassis, clean isometric platform annotations. Infrastructure Environment Tiers: ${params.envDescriptions}. Network Interconnect Backbone: ${params.linkDescriptions}. Perimeter Security & Landing Zone: Physical connectivity via ${params.connectivity}, Landing Zone pattern "${params.landingZone}", Next-Gen Firewall inspection by ${params.nvaFirewall}, Web Application Firewall "${params.wafSolution}". Decoupled Storage Tier: ${params.storageNote}. ${drClause} ${templateSpecialization} ${clutterFreeRule} Isometric orthographic 3D projection, photorealistic enterprise blueprint technical drawing, illuminated fiber optic paths, 4K presentation grade clarity.`;
 }

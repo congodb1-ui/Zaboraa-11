@@ -13,6 +13,10 @@ import { AdminLoginModal } from './components/AdminLoginModal';
 import { WatermarkSettingsModal } from './components/WatermarkSettingsModal';
 import { CommercializeModal } from './components/CommercializeModal';
 import { AuthErrorBoundary } from './components/AuthErrorBoundary';
+import { TelemetryBackground } from './components/TelemetryBackground';
+import { TrackRecordEditorModal } from './components/TrackRecordEditorModal';
+import { FounderCredentialsModal } from './components/FounderCredentialsModal';
+import { HeroStatsModal } from './components/HeroStatsModal';
 
 // Pages
 import { HomePage } from './pages/HomePage';
@@ -71,8 +75,11 @@ const MainLayout: React.FC = () => {
       data-ui-pattern={siteConfig.adminSettings?.backgroundPattern || 'tech-grid'}
       className={`min-h-screen ${
         theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'
-      } theme-root flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200`}
+      } theme-root flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200 relative`}
     >
+      {/* Live Ambient Telemetry Particles */}
+      <TelemetryBackground />
+
       {/* Site-wide Announcement Banner (Admin Configurable) */}
       {siteConfig.adminSettings?.announcementBannerEnabled && (
         <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 border-b border-emerald-500/40 px-4 py-2 text-center text-xs font-semibold text-emerald-200 flex items-center justify-center gap-2">
@@ -233,6 +240,9 @@ const MainLayout: React.FC = () => {
       <SearchCommandModal />
       <AdminLoginModal />
       <WatermarkSettingsModal />
+      <TrackRecordEditorModal />
+      <FounderCredentialsModal />
+      <HeroStatsModal />
       <AuthErrorBoundary fallbackTitle="Commercialization & Authentication Portal">
         <CommercializeModal />
       </AuthErrorBoundary>

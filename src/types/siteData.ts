@@ -145,6 +145,9 @@ export interface CaseStudy {
   };
   summary: string;
   architectureSolution: string[];
+  verifiedBadge?: string;
+  techTags?: string[];
+  dossierUrl?: string;
 }
 
 export interface ArchitectureDesignItem {

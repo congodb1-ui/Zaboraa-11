@@ -612,3 +612,67 @@ html, body {
 .cyber-radial-border {
   background: conic-gradient(from 0deg at 50% 50%, #06b6d4 0deg, #10b981 120deg, #3b82f6 240deg, #06b6d4 360deg);
 }
+
+/* =========================================================================
+   BIONIC BORDER BEAM & CLOUD TRAFFIC FLOW ANIMATIONS
+   High-end SaaS laser borders and live SVG packet streams
+   ========================================================================= */
+
+@keyframes laserSweep {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.bionic-border-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.bionic-beam-layer {
+  position: absolute;
+  inset: -150%;
+  background: conic-gradient(from 0deg, transparent 0deg 335deg, #06b6d4 348deg, #10b981 356deg, #38bdf8 360deg);
+  animation: laserSweep 7s linear infinite;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+@keyframes trafficDashMove {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+.animate-traffic-flow {
+  stroke-dasharray: 6 6;
+  animation: trafficDashMove 1.2s linear infinite;
+}
+
+.animate-traffic-flow-fast {
+  stroke-dasharray: 4 4;
+  animation: trafficDashMove 0.8s linear infinite;
+}
+
+@keyframes radarPingRing {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  70% {
+    transform: scale(2.3);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.3);
+    opacity: 0;
+  }
+}
+
+.animate-radar-ping {
+  animation: radarPingRing 2.2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+

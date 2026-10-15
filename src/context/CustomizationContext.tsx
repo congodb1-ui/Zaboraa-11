@@ -101,6 +101,26 @@ interface CustomizationContextType {
   addTutorial: (tutorial: TutorialArticle) => void;
   updateTutorial: (id: string, tutorial: Partial<TutorialArticle>) => void;
   deleteTutorial: (id: string) => void;
+
+  // Case Study & Track Record Management
+  isTrackRecordModalOpen: boolean;
+  setIsTrackRecordModalOpen: (open: boolean) => void;
+  activeEditCaseStudy: CaseStudy | null;
+  setActiveEditCaseStudy: (study: CaseStudy | null) => void;
+  addCaseStudy: (study: CaseStudy) => void;
+  updateCaseStudy: (id: string, updated: Partial<CaseStudy>) => void;
+  deleteCaseStudy: (id: string) => void;
+  reorderCaseStudies: (startIndex: number, endIndex: number) => void;
+
+  // Founder & Homepage Fields Management
+  isFounderModalOpen: boolean;
+  setIsFounderModalOpen: (open: boolean) => void;
+  updateFounderCredentials: (founder: Partial<SiteConfig['founder']>) => void;
+  isHeroStatsModalOpen: boolean;
+  setIsHeroStatsModalOpen: (open: boolean) => void;
+  updateHeroStats: (stats: SiteConfig['hero']['stats']) => void;
+  updateHeroContent: (hero: Partial<SiteConfig['hero']>) => void;
+
   resetToDefaults: () => void;
   exportConfigJson: () => string;
   importConfigJson: (json: string) => boolean;
@@ -267,6 +287,12 @@ export const CustomizationProvider: React.FC<{ children: React.ReactNode }> = ({
   const [selectedTutorial, setSelectedTutorial] = useState<TutorialArticle | null>(null);
   const [selectedDiagram, setSelectedDiagram] = useState<ArchitectureDiagram | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
+
+  // Track Record & Homepage Fields modal states
+  const [isTrackRecordModalOpen, setIsTrackRecordModalOpen] = useState(false);
+  const [activeEditCaseStudy, setActiveEditCaseStudy] = useState<CaseStudy | null>(null);
+  const [isFounderModalOpen, setIsFounderModalOpen] = useState(false);
+  const [isHeroStatsModalOpen, setIsHeroStatsModalOpen] = useState(false);
 
   // Sync theme to root class and localStorage
   const setTheme = (newTheme: 'dark' | 'light') => {
@@ -689,6 +715,75 @@ export const CustomizationProvider: React.FC<{ children: React.ReactNode }> = ({
     if (selectedTutorial?.id === id) setSelectedTutorial(null);
   };
 
+  // Case Study & Track Record CRUD
+  const addCaseStudy = (study: CaseStudy) => {
+    setSiteConfig(prev => ({
+      ...prev,
+      caseStudies: [study, ...(prev.caseStudies || INITIAL_SITE_DATA.caseStudies)]
+    }));
+  };
+
+  const updateCaseStudy = (id: string, updated: Partial<CaseStudy>) => {
+    setSiteConfig(prev => ({
+      ...prev,
+      caseStudies: (prev.caseStudies || INITIAL_SITE_DATA.caseStudies).map(s =>
+        s.id === id ? { ...s, ...updated } : s
+      )
+    }));
+  };
+
+  const deleteCaseStudy = (id: string) => {
+    setSiteConfig(prev => ({
+      ...prev,
+      caseStudies: (prev.caseStudies || INITIAL_SITE_DATA.caseStudies).filter(s => s.id !== id)
+    }));
+  };
+
+  const reorderCaseStudies = (startIndex: number, endIndex: number) => {
+    setSiteConfig(prev => {
+      const list = [...(prev.caseStudies || INITIAL_SITE_DATA.caseStudies)];
+      if (startIndex < 0 || startIndex >= list.length || endIndex < 0 || endIndex >= list.length) {
+        return prev;
+      }
+      const [moved] = list.splice(startIndex, 1);
+      list.splice(endIndex, 0, moved);
+      return {
+        ...prev,
+        caseStudies: list
+      };
+    });
+  };
+
+  const updateFounderCredentials = (founder: Partial<SiteConfig['founder']>) => {
+    setSiteConfig(prev => ({
+      ...prev,
+      founder: {
+        ...prev.founder,
+        ...founder
+      }
+    }));
+  };
+
+  const updateHeroStats = (stats: SiteConfig['hero']['stats']) => {
+    setSiteConfig(prev => ({
+      ...prev,
+      hero: {
+        ...prev.hero,
+        stats
+      }
+    }));
+  };
+
+  const updateHeroContent = (hero: Partial<SiteConfig['hero']>) => {
+    setSiteConfig(prev => ({
+      ...prev,
+      hero: {
+        ...prev.hero,
+        ...hero
+      }
+    }));
+  };
+
   const resetToDefaults = () => {
     setSiteConfig(INITIAL_SITE_DATA);
     cleanOldStorageKeys();
@@ -778,6 +873,26 @@ export const CustomizationProvider: React.FC<{ children: React.ReactNode }> = ({
         addTutorial,
         updateTutorial,
         deleteTutorial,
+
+        // Case Study & Track Record Management
+        isTrackRecordModalOpen,
+        setIsTrackRecordModalOpen,
+        activeEditCaseStudy,
+        setActiveEditCaseStudy,
+        addCaseStudy,
+        updateCaseStudy,
+        deleteCaseStudy,
+        reorderCaseStudies,
+
+        // Founder & Homepage Fields Management
+        isFounderModalOpen,
+        setIsFounderModalOpen,
+        updateFounderCredentials,
+        isHeroStatsModalOpen,
+        setIsHeroStatsModalOpen,
+        updateHeroStats,
+        updateHeroContent,
+
         resetToDefaults,
         exportConfigJson,
         importConfigJson

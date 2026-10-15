@@ -2065,7 +2065,8 @@ export const DesignGeneratorPage: React.FC = () => {
       drEngine,
       drRpoMinutes,
       drRtoMinutes,
-      drStrategy
+      drStrategy,
+      blueprintTemplate: wizardState.activeTemplate || activeTemplate
     });
   };
 

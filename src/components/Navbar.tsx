@@ -355,12 +355,12 @@ export const Navbar: React.FC = () => {
           </NavLink>
         </nav>
 
-        {/* Zone 3: Primary Actions & Admin & Theme */}
+        {/* Zone 3: Primary Actions & Admin & Theme & Mobile Hamburger */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {/* Global Theme Toggle */}
           <button
             onClick={toggleTheme}
-            className="flex items-center justify-center p-1.5 sm:px-2 sm:py-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-md transition-colors cursor-pointer shrink-0"
+            className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg transition-colors cursor-pointer shrink-0"
             title={theme === 'dark' ? 'Switch to High-Contrast Light Mode' : 'Switch to Dark Mode'}
             aria-label="Toggle theme mode"
           >
@@ -374,20 +374,17 @@ export const Navbar: React.FC = () => {
           {/* Search Button (Ctrl+K) */}
           <button
             onClick={() => setIsSearchOpen(true)}
-            className="flex items-center gap-1 p-1.5 sm:px-2 sm:py-1.5 text-xs font-medium text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-md transition-colors cursor-pointer shrink-0"
+            className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg transition-colors cursor-pointer shrink-0"
             title="Search across all platforms, tools, and runbooks (Ctrl+K)"
           >
             <Search className="w-3.5 h-3.5 text-slate-400" />
-            <kbd className="hidden xl:inline px-1 py-0.2 bg-slate-800 border border-slate-700 rounded text-[10px] font-mono text-slate-400">
-              ⌘K
-            </kbd>
           </button>
 
           {/* Admin Lock / Customizer Trigger */}
           {isAdmin ? (
             <button
               onClick={() => setIsCustomizerOpen(true)}
-              className="hidden sm:flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-xs font-bold text-emerald-300 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/60 rounded-md transition-colors cursor-pointer shrink-0"
+              className="hidden md:flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-emerald-300 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/60 rounded-lg transition-colors cursor-pointer shrink-0"
               title="Open site customizer drawer"
             >
               <Sliders className="w-3.5 h-3.5 text-emerald-400" />
@@ -396,150 +393,180 @@ export const Navbar: React.FC = () => {
           ) : (
             <button
               onClick={() => setIsAdminLoginModalOpen(true)}
-              className="flex items-center justify-center p-1.5 text-slate-500 hover:text-slate-300 transition-colors cursor-pointer shrink-0"
+              className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 text-slate-500 hover:text-slate-300 bg-slate-900/60 hover:bg-slate-900 border border-slate-800 rounded-lg transition-colors cursor-pointer shrink-0"
               title="Admin Mode login"
             >
               <Lock className="w-3.5 h-3.5" />
             </button>
           )}
 
-          {/* Commercialization & Google Account Trigger */}
+          {/* User Account / Sign In Trigger (Zero Tiers) */}
           <button
             onClick={() => setIsCommercializeModalOpen(true)}
-            className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer shrink-0 ${
+            className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer shrink-0 ${
               authUser
                 ? 'bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/50 text-cyan-200'
                 : 'bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white'
             }`}
-            title="Commercialize tools, pricing tiers, and Google Authentication"
+            title="Enterprise Architect Account & SSO Session"
           >
             <Sparkles className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-            <span className="hidden md:inline truncate max-w-[90px] lg:max-w-[110px]">
-              {authUser ? authUser.displayName?.split(' ')[0] : 'Sign In'}
-            </span>
-            <span className={`text-[9px] font-mono px-1 py-0.2 rounded uppercase font-bold shrink-0 ${
-              licenseTier === 'pro' ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-400'
-            }`}>
-              {licenseTier === 'pro' ? 'PRO' : 'FREE'}
+            <span className="truncate max-w-[100px] lg:max-w-[130px]">
+              {authUser ? (authUser.displayName?.split(' ')[0] || 'Architect') : 'Sign In'}
             </span>
           </button>
 
-          {/* Primary CTA Button: Book Briefing - Fully visible with guaranteed zero cut-off */}
+          {/* Primary CTA Button: Book Briefing (Visible on md+ screens, available in mobile drawer on small screens) */}
           <button
             onClick={() => setIsBriefingModalOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 text-xs font-bold text-slate-950 bg-cyan-400 hover:bg-cyan-300 rounded-md transition-all shadow-sm hover:scale-105 cursor-pointer whitespace-nowrap shrink-0"
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-950 bg-cyan-400 hover:bg-cyan-300 rounded-lg transition-all shadow-sm hover:scale-105 cursor-pointer whitespace-nowrap shrink-0"
             title="Schedule an Executive Architecture Briefing"
           >
             <Calendar className="w-3.5 h-3.5 shrink-0" />
             <span>Book Briefing</span>
           </button>
 
-          {/* Mobile Menu Hamburger */}
+          {/* Mobile Menu Hamburger - Always guaranteed visible with 44px touch hitbox */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="xl:hidden p-1.5 sm:p-2 text-slate-400 hover:text-white rounded-md bg-slate-900 border border-slate-800 transition-colors cursor-pointer shrink-0"
-            aria-label="Toggle mobile menu"
+            className="xl:hidden min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] flex items-center justify-center text-slate-200 hover:text-white rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700/80 transition-all cursor-pointer shrink-0 shadow-sm"
+            aria-label="Toggle navigation menu"
+            title="Open navigation menu"
           >
-            {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            {mobileMenuOpen ? <X className="w-5 h-5 text-cyan-400" /> : <Menu className="w-5 h-5 text-slate-200" />}
           </button>
         </div>
       </div>
 
       {/* Mobile Navigation Drawer */}
       {mobileMenuOpen && (
-        <div className="xl:hidden border-b border-slate-800 bg-slate-950 px-4 pt-4 pb-6 space-y-4 max-h-[80vh] overflow-y-auto">
-          <div className="space-y-1">
-            <NavLink
-              to="/"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block px-3 py-2 rounded-lg text-sm font-semibold text-slate-200 hover:bg-slate-900"
+        <div className="xl:hidden border-b border-slate-800 bg-slate-950 px-4 pt-3 pb-6 space-y-4 max-h-[82vh] overflow-y-auto shadow-2xl animate-in slide-in-from-top-2 duration-200">
+          {/* Top Quick Actions on Mobile */}
+          <div className="space-y-2 pt-1 pb-2 border-b border-slate-800/80">
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                setIsBriefingModalOpen(true);
+              }}
+              className="w-full h-11 flex items-center justify-center gap-2 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-bold text-xs tracking-wide shadow-lg shadow-cyan-500/20 transition-all cursor-pointer"
             >
-              Home Overview
-            </NavLink>
-            <NavLink
-              to="/tools"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block px-3 py-2 rounded-lg text-sm font-semibold text-cyan-400 hover:bg-slate-900"
-            >
-              Engineering Workbench (6 Tools)
-            </NavLink>
-            <div className="pl-4 space-y-1 text-xs font-medium text-slate-400">
-              <Link to="/tools/sizing" onClick={() => setMobileMenuOpen(false)} className="block py-1 hover:text-cyan-300">
-                · Node & Storage Sizing
-              </Link>
-              <Link to="/tools/rvtools-analyzer" onClick={() => setMobileMenuOpen(false)} className="block py-1 hover:text-emerald-300">
-                · RVTools Readiness Engine
-              </Link>
-              <Link to="/tools/nutanix-nc2-assessment" onClick={() => setMobileMenuOpen(false)} className="block py-1 hover:text-emerald-300">
-                · Nutanix NC2 on Azure Assessment
-              </Link>
-              <Link to="/tools/aria-networks" onClick={() => setMobileMenuOpen(false)} className="block py-1 hover:text-cyan-300">
-                · Aria Networks & DFW Planner
-              </Link>
-              <Link to="/tools/dr-planner" onClick={() => setMobileMenuOpen(false)} className="block py-1 hover:text-rose-300">
-                · DR RPO/RTO Calculator
-              </Link>
-              <Link to="/tools/design-generator" onClick={() => setMobileMenuOpen(false)} className="block py-1 hover:text-indigo-300">
-                · Automated Blueprint Generator
-              </Link>
-            </div>
-            <NavLink
-              to="/roadmap"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block px-3 py-2 rounded-lg text-sm font-semibold text-slate-200 hover:bg-slate-900"
-            >
-              Migration Roadmap
-            </NavLink>
-            <NavLink
-              to="/resources"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block px-3 py-2 rounded-lg text-sm font-semibold text-slate-200 hover:bg-slate-900"
-            >
-              Knowledge Hub (KB, Tutorials, Videos)
-            </NavLink>
-            <NavLink
-              to="/case-studies"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block px-3 py-2 rounded-lg text-sm font-semibold text-slate-200 hover:bg-slate-900"
-            >
-              Case Studies
-            </NavLink>
-            <NavLink
-              to="/about"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block px-3 py-2 rounded-lg text-sm font-semibold text-slate-200 hover:bg-slate-900"
-            >
-              About Principal Architect
-            </NavLink>
+              <Calendar className="w-4 h-4" />
+              <span>Schedule Architecture Briefing</span>
+            </button>
 
             <button
               onClick={() => {
                 setMobileMenuOpen(false);
                 setIsCommercializeModalOpen(true);
               }}
-              className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-900/60 transition-colors cursor-pointer"
+              className="w-full h-10 flex items-center justify-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-semibold text-xs transition-colors cursor-pointer"
             >
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-cyan-400" />
-                <span>Commercialize Tools & Sign Up</span>
-              </div>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-900 text-cyan-200 uppercase font-bold">
-                {licenseTier === 'pro' ? 'PRO' : 'FREE'}
-              </span>
+              <Sparkles className="w-4 h-4 text-cyan-400" />
+              <span>{authUser ? `Architect Session: ${authUser.displayName || authUser.email}` : 'Sign In / Single Sign-On'}</span>
             </button>
+
+            {isAdmin && (
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setIsCustomizerOpen(true);
+                }}
+                className="w-full h-10 flex items-center justify-center gap-2 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/50 text-emerald-300 font-bold text-xs transition-colors cursor-pointer"
+              >
+                <Sliders className="w-4 h-4 text-emerald-400" />
+                <span>Admin Studio & Customizer</span>
+              </button>
+            )}
           </div>
 
-          <div className="pt-2 border-t border-slate-800 text-xs space-y-2">
-            <div className="font-mono text-slate-500 uppercase text-[10px]">Architectural Disciplines</div>
+          {/* Primary Mobile Navigation Links */}
+          <div className="space-y-1">
+            <NavLink
+              to="/"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 rounded-lg text-xs font-semibold text-slate-200 hover:bg-slate-900 transition-colors"
+            >
+              Home Overview
+            </NavLink>
+            <NavLink
+              to="/tools"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 rounded-lg text-xs font-bold text-cyan-400 hover:bg-slate-900 transition-colors"
+            >
+              Engineering Workbench (6 Production Calculators)
+            </NavLink>
+            <div className="pl-4 space-y-1.5 text-xs text-slate-300">
+              <Link to="/tools/sizing" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-1 hover:text-cyan-300">
+                <HardDrive className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                <span>Node & Storage Decoupling Sizer</span>
+              </Link>
+              <Link to="/tools/rvtools-analyzer" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-1 hover:text-emerald-300">
+                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>RVTools Migration Readiness Engine</span>
+              </Link>
+              <Link to="/tools/nutanix-nc2-assessment" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-1 hover:text-emerald-300">
+                <Cpu className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+                <span>Nutanix NC2 on Azure Assessment</span>
+              </Link>
+              <Link to="/tools/aria-networks" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-1 hover:text-cyan-300">
+                <Network className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
+                <span>Aria Networks & DFW Rules Planner</span>
+              </Link>
+              <Link to="/tools/dr-planner" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-1 hover:text-rose-300">
+                <ShieldAlert className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                <span>DR RPO/RTO & WAN Calculator</span>
+              </Link>
+              <Link to="/tools/design-generator" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-1 hover:text-indigo-300 font-semibold text-cyan-300">
+                <Layers className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                <span>Automated 4K Blueprint Generator</span>
+              </Link>
+            </div>
+
+            <NavLink
+              to="/roadmap"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 rounded-lg text-xs font-semibold text-slate-200 hover:bg-slate-900 transition-colors"
+            >
+              Migration Roadmap (9-Stage Lifecycle)
+            </NavLink>
+            <NavLink
+              to="/resources"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 rounded-lg text-xs font-semibold text-slate-200 hover:bg-slate-900 transition-colors"
+            >
+              Knowledge Hub (KB Runbooks, Tutorials & Videos)
+            </NavLink>
+            <NavLink
+              to="/case-studies"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 rounded-lg text-xs font-semibold text-slate-200 hover:bg-slate-900 transition-colors"
+            >
+              Verified Case Studies
+            </NavLink>
+            <NavLink
+              to="/about"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 rounded-lg text-xs font-semibold text-slate-200 hover:bg-slate-900 transition-colors"
+            >
+              About Lead Principal Architect Wasim Sayyed
+            </NavLink>
+          </div>
+
+          {/* Architectural Disciplines Grid in Mobile Drawer */}
+          <div className="pt-3 border-t border-slate-800 text-xs space-y-2">
+            <div className="font-mono text-slate-400 uppercase text-[10px] tracking-wider font-semibold">
+              Hyperscaler & Software-Defined Platforms
+            </div>
             <div className="grid grid-cols-2 gap-2">
               {(siteConfig.platformShowcases || []).map(p => (
                 <Link
                   key={p.id}
                   to={`/disciplines/${p.id}`}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="p-2 rounded bg-slate-900 border border-slate-800 text-[11px] text-slate-300 hover:text-cyan-300"
+                  className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-300 hover:text-cyan-300 transition-colors"
                 >
-                  {p.title}
+                  <div className="font-bold truncate text-slate-200">{p.platform}</div>
+                  <div className="text-[10px] text-slate-500 truncate">{p.badge}</div>
                 </Link>
               ))}
             </div>
