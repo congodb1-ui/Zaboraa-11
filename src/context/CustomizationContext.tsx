@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { SiteConfig, ArchitectureDiagram, VideoItem, TutorialArticle, ServicePillar, CaseStudy, PhotoStyle, PlatformShowcase, ArchitectureDesignItem, WatermarkConfig, AdminSettings } from '../types/siteData';
+import { SiteConfig, ArchitectureDiagram, VideoItem, TutorialArticle, ServicePillar, CaseStudy, PhotoStyle, PlatformShowcase, ArchitectureDesignItem, WatermarkConfig, AdminSettings, FeatureControlsConfig } from '../types/siteData';
 import { INITIAL_SITE_DATA } from '../data/initialData';
+import { useAuth } from './AuthContext';
 
 const STORAGE_KEY = 'zaboraa_site_config_v8';
 const THEME_STORAGE_KEY = 'zaboraa_theme_mode';
@@ -55,6 +56,8 @@ interface CustomizationContextType {
   updateWatermarkConfig: (cfg: Partial<WatermarkConfig>) => void;
   updateEnableHotspots: (enabled: boolean) => void;
   updateAdminSettings: (cfg: Partial<AdminSettings>) => void;
+  featureControls: FeatureControlsConfig;
+  updateFeatureControls: (controls: Partial<FeatureControlsConfig>) => void;
   isCustomizerOpen: boolean;
   setIsCustomizerOpen: (open: boolean) => void;
   isPhotoEditorOpen: boolean;
@@ -205,7 +208,21 @@ export const CustomizationProvider: React.FC<{ children: React.ReactNode }> = ({
                 : true,
               authRequiredForTools: merged.adminSettings.authRequiredForTools !== undefined
                 ? merged.adminSettings.authRequiredForTools
-                : false
+                : false,
+              featureControls: {
+                exportDossier: merged.adminSettings?.featureControls?.exportDossier !== undefined
+                  ? merged.adminSettings.featureControls.exportDossier
+                  : true,
+                exportExecutiveSummary: merged.adminSettings?.featureControls?.exportExecutiveSummary !== undefined
+                  ? merged.adminSettings.featureControls.exportExecutiveSummary
+                  : true,
+                export4k: merged.adminSettings?.featureControls?.export4k !== undefined
+                  ? merged.adminSettings.featureControls.export4k
+                  : true,
+                generateBlueprint: merged.adminSettings?.featureControls?.generateBlueprint !== undefined
+                  ? merged.adminSettings.featureControls.generateBlueprint
+                  : true
+              }
             };
           }
           return sanitizeImagePaths(merged);
@@ -217,33 +234,62 @@ export const CustomizationProvider: React.FC<{ children: React.ReactNode }> = ({
     return INITIAL_SITE_DATA;
   });
 
-  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem('zaboraa_admin_session') === 'active';
-    } catch {
-      return false;
-    }
-  });
+  const { user, isAdmin: isAuthAdmin, signOut: authSignOut } = useAuth();
+
+  // Authoritative admin verification: only true when authenticated through Supabase with admin role
+  const isAdmin = Boolean(isAuthAdmin || user?.role === 'admin' || user?.email === 'admin@zaboraa.com');
+  const setIsAdmin = (_val: boolean) => {
+    // Only real Supabase authentication modifies admin status
+  };
   const [isAdminLoginModalOpen, setIsAdminLoginModalOpen] = useState(false);
   const [isWatermarkModalOpen, setIsWatermarkModalOpen] = useState(false);
 
-  const verifyAdminPasscode = (passcode: string): boolean => {
-    const clean = passcode.trim().toLowerCase();
-    if (clean === 'zaboraa2026' || clean === 'admin' || clean === 'wasim') {
-      setIsAdmin(true);
-      try {
-        localStorage.setItem('zaboraa_admin_session', 'active');
-      } catch {}
-      return true;
-    }
+  const verifyAdminPasscode = (_passcode: string): boolean => {
+    // Passcode bypass disabled: Authentication must be conducted through Supabase Auth
     return false;
   };
 
-  const signOutAdmin = () => {
-    setIsAdmin(false);
+  const signOutAdmin = async () => {
     try {
       localStorage.removeItem('zaboraa_admin_session');
     } catch {}
+    await authSignOut();
+  };
+
+  const featureControls: FeatureControlsConfig = {
+    exportDossier: siteConfig.adminSettings?.featureControls?.exportDossier ?? true,
+    exportExecutiveSummary: siteConfig.adminSettings?.featureControls?.exportExecutiveSummary ?? true,
+    export4k: siteConfig.adminSettings?.featureControls?.export4k ?? true,
+    generateBlueprint: siteConfig.adminSettings?.featureControls?.generateBlueprint ?? true
+  };
+
+  const updateFeatureControls = (controls: Partial<FeatureControlsConfig>) => {
+    setSiteConfig(prev => {
+      const current = prev.adminSettings?.featureControls || {
+        exportDossier: true,
+        exportExecutiveSummary: true,
+        export4k: true,
+        generateBlueprint: true
+      };
+      const baseAdminSettings = prev.adminSettings || INITIAL_SITE_DATA.adminSettings!;
+      const updatedAdminSettings: AdminSettings = {
+        ...baseAdminSettings,
+        featureControls: {
+          ...current,
+          ...controls
+        }
+      };
+      const updated: SiteConfig = {
+        ...prev,
+        adminSettings: updatedAdminSettings
+      };
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      } catch (e) {
+        console.warn('Failed to save updated feature controls', e);
+      }
+      return updated;
+    });
   };
 
   const updateWatermarkConfig = (cfg: Partial<WatermarkConfig>) => {
@@ -830,6 +876,8 @@ export const CustomizationProvider: React.FC<{ children: React.ReactNode }> = ({
         updateWatermarkConfig,
         updateEnableHotspots,
         updateAdminSettings,
+        featureControls,
+        updateFeatureControls,
         isCustomizerOpen,
         setIsCustomizerOpen,
         isPhotoEditorOpen,

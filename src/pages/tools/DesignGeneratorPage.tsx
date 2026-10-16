@@ -40,6 +40,8 @@ import {
 } from 'lucide-react';
 import { GOOGLE_DRIVE_CONFIG } from '../../data/mediaAssets';
 import { useCustomization } from '../../context/CustomizationContext';
+import { useAuth } from '../../context/AuthContext';
+import { saveGeneratedBlueprint } from '../../services/storageService';
 import {
   ArchitectureTemplateId,
   CloudPlatformType,
@@ -1007,9 +1009,17 @@ export function buildTrackVisualSpec(
 }
 
 export const DesignGeneratorPage: React.FC = () => {
-  const { setIsBriefingModalOpen } = useCustomization();
+  const { setIsBriefingModalOpen, featureControls } = useCustomization();
+  const { user } = useAuth();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isSyncedToDrive, setIsSyncedToDrive] = useState<boolean>(false);
+
+  const activeFeatureControls = featureControls || {
+    exportDossier: true,
+    exportExecutiveSummary: true,
+    export4k: true,
+    generateBlueprint: true
+  };
 
   // 1. Wizard Metadata
   const [customerName, setCustomerName] = useState<string>('Global Financial Enterprises');
@@ -1937,6 +1947,11 @@ export const DesignGeneratorPage: React.FC = () => {
 
   // Export 4K Canvas Image (STRICT BOUNDARY: pure render and download, ZERO localStorage writes)
   const handleExport4K = (format: 'png' | 'jpeg') => {
+    if (!activeFeatureControls.export4k) {
+      setSaveSuccessNotice('4K Blueprint export is disabled by Administrator Feature Controls.');
+      setTimeout(() => setSaveSuccessNotice(null), 4000);
+      return;
+    }
     const offscreen = document.createElement('canvas');
     draw4KCanvas(offscreen);
     const link = document.createElement('a');
@@ -2072,6 +2087,13 @@ export const DesignGeneratorPage: React.FC = () => {
 
 // AI 3D Isometric Generation Trigger
   const handleGenerateAIBlueprint = async () => {
+    if (!activeFeatureControls.generateBlueprint) {
+      setShowPreFlightModal(false);
+      setSaveSuccessNotice('Blueprint generation is disabled by Administrator Feature Controls.');
+      setTimeout(() => setSaveSuccessNotice(null), 4000);
+      return;
+    }
+
     setIsGenerating3D(true);
     setShowPreFlightModal(false);
     setGenerationProgress(10);
@@ -2102,9 +2124,13 @@ export const DesignGeneratorPage: React.FC = () => {
       setGenerationProgress(100);
       setGenerationStep('Finalizing 4K dark blueprint render...');
 
+      const finalImageUrl = data.success && data.imageBase64
+        ? `data:image/jpeg;base64,${data.imageBase64}`
+        : (data.fallbackUrl || '/assets/images/blueprint_3d_isometric_1791610246387.jpg');
+
       if (data.success && data.imageBase64) {
         setAiBlueprintResult({
-          imageUrl: `data:image/jpeg;base64,${data.imageBase64}`,
+          imageUrl: finalImageUrl,
           isFallback: false,
           model: data.model || 'imagen-3.0-generate-002',
           prompt: data.prompt || prompt
@@ -2112,7 +2138,7 @@ export const DesignGeneratorPage: React.FC = () => {
       } else {
         // Fallback with bundled high-res 3D isometric diagram
         setAiBlueprintResult({
-          imageUrl: data.fallbackUrl || '/assets/images/blueprint_3d_isometric_1791610246387.jpg',
+          imageUrl: finalImageUrl,
           isFallback: true,
           model: 'Bundled Enterprise 3D Blueprint Asset',
           prompt,
@@ -2120,20 +2146,85 @@ export const DesignGeneratorPage: React.FC = () => {
         });
       }
 
+      // Automatically persist every generated blueprint to Supabase storage architecture
+      saveGeneratedBlueprint({
+        title: `${customerName} — 3D Architecture Blueprint`,
+        imageDataOrUrl: finalImageUrl,
+        userId: user?.uid,
+        userEmail: user?.email,
+        configSummary: {
+          customerName,
+          architectName,
+          cloudPlatform,
+          nodeSku,
+          targetNodeCount: calculatedCloudNodes,
+          decoupledStorageTB,
+          externalStorageName,
+          totalVMCount,
+          drEngine,
+          drRpoMinutes,
+          drRtoMinutes,
+          drStrategy,
+          nvaFirewall,
+          wafSolution,
+          connectivity,
+          landingZone,
+          sddcMgmtCidr: wizardState.sddcMgmtCidr
+        },
+        metadata: {
+          model: data.model || 'gemini-3.1-flash-image',
+          isFallback: !data.success || !data.imageBase64,
+          timestamp: new Date().toISOString()
+        }
+      }).then(saveRes => {
+        if (saveRes.message) {
+          setSaveSuccessNotice(saveRes.message);
+          setTimeout(() => setSaveSuccessNotice(null), 6000);
+        }
+      }).catch(err => {
+        console.warn('Notice: Background blueprint storage error:', err);
+      });
+
       setTimeout(() => {
         setIsGenerating3D(false);
         setShow3DModal(true);
       }, 500);
     } catch (err: any) {
       // In case of network error, gracefully fallback
+      const fallbackUrl = '/assets/images/blueprint_3d_isometric_1791610246387.jpg';
       setGenerationProgress(100);
       setAiBlueprintResult({
-        imageUrl: '/assets/images/blueprint_3d_isometric_1791610246387.jpg',
+        imageUrl: fallbackUrl,
         isFallback: true,
         model: 'Bundled Enterprise 3D Blueprint Asset',
         prompt,
         message: 'Loaded bundled high-resolution 3D isometric architecture blueprint.'
       });
+
+      saveGeneratedBlueprint({
+        title: `${customerName} — 3D Architecture Blueprint`,
+        imageDataOrUrl: fallbackUrl,
+        userId: user?.uid,
+        userEmail: user?.email,
+        configSummary: {
+          customerName,
+          architectName,
+          cloudPlatform,
+          nodeSku,
+          targetNodeCount: calculatedCloudNodes
+        },
+        metadata: {
+          model: 'Bundled Enterprise 3D Blueprint Asset',
+          isFallback: true,
+          timestamp: new Date().toISOString()
+        }
+      }).then(saveRes => {
+        if (saveRes.message) {
+          setSaveSuccessNotice(saveRes.message);
+          setTimeout(() => setSaveSuccessNotice(null), 6000);
+        }
+      }).catch(() => {});
+
       setTimeout(() => {
         setIsGenerating3D(false);
         setShow3DModal(true);
@@ -2305,11 +2396,23 @@ export const DesignGeneratorPage: React.FC = () => {
           <div className="flex flex-wrap items-center gap-2.5">
             {/* Primary AI Generation Trigger Button */}
             <button
-              onClick={() => setShowPreFlightModal(true)}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-cyan-500/20 cursor-pointer transition-all hover:scale-[1.02]"
-              title="Generate 3D Isometric Architecture Diagram with Gemini AI"
+              onClick={() => {
+                if (!activeFeatureControls.generateBlueprint) {
+                  setSaveSuccessNotice('Blueprint generation is disabled by Administrator Feature Controls.');
+                  setTimeout(() => setSaveSuccessNotice(null), 4000);
+                  return;
+                }
+                setShowPreFlightModal(true);
+              }}
+              disabled={!activeFeatureControls.generateBlueprint}
+              className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow-lg transition-all ${
+                activeFeatureControls.generateBlueprint
+                  ? 'bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 shadow-cyan-500/20 cursor-pointer hover:scale-[1.02]'
+                  : 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-60 border border-slate-700'
+              }`}
+              title={activeFeatureControls.generateBlueprint ? "Generate 3D Isometric Architecture Diagram with Gemini AI" : "Feature disabled by Administrator Feature Controls"}
             >
-              <Sparkles className="w-4 h-4 fill-slate-950" />
+              <Sparkles className="w-4 h-4 fill-current" />
               <span>Generate 3D Blueprint</span>
             </button>
 
@@ -2346,8 +2449,13 @@ export const DesignGeneratorPage: React.FC = () => {
             {/* Export 4K Canvas */}
             <button
               onClick={() => handleExport4K('png')}
-              className="px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-semibold text-xs flex items-center gap-2 cursor-pointer shadow"
-              title="Download high-resolution 4K canvas vector render"
+              disabled={!activeFeatureControls.export4k}
+              className={`px-3.5 py-2.5 rounded-xl border font-semibold text-xs flex items-center gap-2 shadow transition ${
+                activeFeatureControls.export4k
+                  ? 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-200 cursor-pointer'
+                  : 'bg-slate-900/50 border-slate-800 text-slate-500 cursor-not-allowed opacity-60'
+              }`}
+              title={activeFeatureControls.export4k ? "Download high-resolution 4K canvas vector render" : "4K Export disabled by Administrator"}
             >
               <Download className="w-4 h-4 text-cyan-400" />
               <span>Export 4K Canvas</span>
@@ -2355,8 +2463,21 @@ export const DesignGeneratorPage: React.FC = () => {
 
             {/* Executive Dossier */}
             <button
-              onClick={() => setShowDossierModal(true)}
-              className="px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-semibold text-xs flex items-center gap-2 cursor-pointer shadow"
+              onClick={() => {
+                if (!activeFeatureControls.exportDossier) {
+                  setSaveSuccessNotice('Executive Dossier is disabled by Administrator Feature Controls.');
+                  setTimeout(() => setSaveSuccessNotice(null), 4000);
+                  return;
+                }
+                setShowDossierModal(true);
+              }}
+              disabled={!activeFeatureControls.exportDossier}
+              className={`px-3.5 py-2.5 rounded-xl border font-semibold text-xs flex items-center gap-2 shadow transition ${
+                activeFeatureControls.exportDossier
+                  ? 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-200 cursor-pointer'
+                  : 'bg-slate-900/50 border-slate-800 text-slate-500 cursor-not-allowed opacity-60'
+              }`}
+              title={activeFeatureControls.exportDossier ? "Open Executive Architecture Dossier" : "Executive Dossier disabled by Administrator"}
             >
               <Printer className="w-4 h-4 text-emerald-400" />
               <span>Executive Dossier</span>
@@ -2578,12 +2699,26 @@ export const DesignGeneratorPage: React.FC = () => {
                 wizardState={wizardState}
                 onChange={handleWizardStateChange}
                 onPrev={() => setCurrentStep(3)}
-                onGenerateAI={() => setShowPreFlightModal(true)}
+                onGenerateAI={() => {
+                  if (!activeFeatureControls.generateBlueprint) {
+                    setSaveSuccessNotice('Blueprint generation is disabled by Administrator Feature Controls.');
+                    setTimeout(() => setSaveSuccessNotice(null), 4000);
+                    return;
+                  }
+                  setShowPreFlightModal(true);
+                }}
                 onSaveBlueprint={handlePersistLegacyState}
                 onExportJson={handleExportBlueprintJSON}
                 onExportExcel={handleExportBOMExcel}
                 onExport4K={() => handleExport4K('png')}
-                onOpenDossier={() => setShowDossierModal(true)}
+                onOpenDossier={() => {
+                  if (!activeFeatureControls.exportDossier) {
+                    setSaveSuccessNotice('Executive Dossier is disabled by Administrator Feature Controls.');
+                    setTimeout(() => setSaveSuccessNotice(null), 4000);
+                    return;
+                  }
+                  setShowDossierModal(true);
+                }}
               />
             )}
           </>

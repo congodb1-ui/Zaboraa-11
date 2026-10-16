@@ -74,10 +74,12 @@ export const CustomizerDrawer: React.FC = () => {
     setIsHeroStatsModalOpen,
     resetToDefaults,
     exportConfigJson,
-    importConfigJson
+    importConfigJson,
+    featureControls,
+    updateFeatureControls
   } = useCustomization();
 
-  const [activeTab, setActiveTab] = useState<'appearance' | 'track-records' | 'general' | 'hero' | 'platforms' | 'videos' | 'tutorials' | 'backup'>('appearance');
+  const [activeTab, setActiveTab] = useState<'appearance' | 'feature-controls' | 'track-records' | 'general' | 'hero' | 'platforms' | 'videos' | 'tutorials' | 'backup'>('appearance');
   const [saveStatus, setSaveStatus] = useState<string>('');
   const [importText, setImportText] = useState<string>('');
   const [importError, setImportError] = useState<string>('');
@@ -401,6 +403,7 @@ export const CustomizerDrawer: React.FC = () => {
         <div className="flex overflow-x-auto border-b border-slate-800 bg-slate-950/50 p-1.5 gap-1 text-xs">
           {[
             { id: 'appearance', label: 'UI Designs & Themes', icon: Palette },
+            { id: 'feature-controls', label: 'Feature Controls', icon: Sliders },
             { id: 'track-records', label: 'Track Records & Credentials', icon: Shield },
             { id: 'general', label: 'General & Founder', icon: User },
             { id: 'hero', label: 'Hero Copy', icon: Sliders },
@@ -952,6 +955,125 @@ export const CustomizerDrawer: React.FC = () => {
                 >
                   <Trash2 className="w-3.5 h-3.5 text-rose-400" />
                   <span>One-Click Full Factory Reset</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: FEATURE CONTROLS */}
+          {activeTab === 'feature-controls' && (
+            <div className="space-y-6 text-xs">
+              <div className="p-4 rounded-xl bg-slate-950 border border-cyan-500/40 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sliders className="w-4 h-4 text-cyan-400" />
+                    <h3 className="text-sm font-bold text-white">Administrator Feature Controls</h3>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800">
+                    Admin Exclusive
+                  </span>
+                </div>
+                <p className="text-slate-400 leading-relaxed text-[11px]">
+                  Govern the availability of blueprint generation and export engines. When disabled, the corresponding feature is blocked from execution across all user workflows and tools. All features default to enabled.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {[
+                  {
+                    key: 'exportDossier' as const,
+                    title: 'Export Dossier',
+                    desc: 'Executive architecture deliverable with BOM breakdown, storage decoupling metrics, and disaster recovery profiles.',
+                    enabled: featureControls.exportDossier
+                  },
+                  {
+                    key: 'exportExecutiveSummary' as const,
+                    title: 'Export Executive Summary',
+                    desc: 'High-level executive briefing summary and architecture deck export for stakeholder presentations.',
+                    enabled: featureControls.exportExecutiveSummary
+                  },
+                  {
+                    key: 'export4k' as const,
+                    title: 'Export 4K',
+                    desc: 'Ultra-high-definition 3840×2160 (4K) canvas vector architecture blueprint downloads.',
+                    enabled: featureControls.export4k
+                  },
+                  {
+                    key: 'generateBlueprint' as const,
+                    title: 'Generate Blueprint',
+                    desc: '3D isometric AI cloud architecture blueprint rendering engine with glowing neon transit paths.',
+                    enabled: featureControls.generateBlueprint
+                  }
+                ].map((item) => (
+                  <div
+                    key={item.key}
+                    className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-slate-700/80 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                  >
+                    <div className="space-y-1 max-w-md">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-white text-sm">{item.title}</span>
+                        <span
+                          className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-semibold border flex items-center gap-1 ${
+                            item.enabled
+                              ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300'
+                              : 'bg-rose-950/80 border-rose-500/50 text-rose-300'
+                          }`}
+                        >
+                          {item.enabled ? (
+                            <>
+                              <CheckCircle2 className="w-3 h-3" /> Enabled
+                            </>
+                          ) : (
+                            <>
+                              <AlertCircle className="w-3 h-3" /> Disabled
+                            </>
+                          )}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">{item.desc}</p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextState = !item.enabled;
+                          updateFeatureControls({ [item.key]: nextState });
+                          showNotification(`${item.title} has been ${nextState ? 'enabled' : 'disabled'}.`);
+                        }}
+                        aria-pressed={item.enabled}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                          item.enabled ? 'bg-emerald-500' : 'bg-slate-700'
+                        }`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                            item.enabled ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Reset Controls Button */}
+              <div className="pt-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    updateFeatureControls({
+                      exportDossier: true,
+                      exportExecutiveSummary: true,
+                      export4k: true,
+                      generateBlueprint: true
+                    });
+                    showNotification('All 4 feature controls reset to Enabled.');
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium cursor-pointer transition flex items-center gap-1.5"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Reset All to Enabled</span>
                 </button>
               </div>
             </div>

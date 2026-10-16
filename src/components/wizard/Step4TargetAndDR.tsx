@@ -39,6 +39,7 @@ import {
   validateDisasterRecoverySla
 } from '../../utils/architectureCalculator';
 import { getRunbookForPlatform, PlatformMigrationRunbook } from '../../data/migrationRunbooksData';
+import { useCustomization } from '../../context/CustomizationContext';
 
 interface Step4TargetAndDRProps {
   wizardState: WizardState;
@@ -65,6 +66,13 @@ export const Step4TargetAndDR: React.FC<Step4TargetAndDRProps> = ({
   onOpenDossier,
   blueprintPreviewNode
 }) => {
+  const { featureControls } = useCustomization();
+  const fc = featureControls || {
+    exportDossier: true,
+    exportExecutiveSummary: true,
+    export4k: true,
+    generateBlueprint: true
+  };
   const [dailyChangeGB] = useState<number>(350);
   const [incompatibilityNotice, setIncompatibilityNotice] = useState<string | null>(null);
   const [showRunbookModal, setShowRunbookModal] = useState<boolean>(false);
@@ -657,19 +665,28 @@ export const Step4TargetAndDR: React.FC<Step4TargetAndDRProps> = ({
           {/* 1. Primary AI 3D Generation */}
           <button
             type="button"
-            onClick={onGenerateAI}
-            className="p-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex flex-col justify-between shadow-xs cursor-pointer transition transform hover:scale-[1.01] sm:col-span-2 lg:col-span-1"
+            onClick={fc.generateBlueprint ? onGenerateAI : undefined}
+            disabled={!fc.generateBlueprint}
+            className={`p-4 rounded-xl font-bold text-xs flex flex-col justify-between shadow-xs transition transform sm:col-span-2 lg:col-span-1 ${
+              fc.generateBlueprint
+                ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer hover:scale-[1.01]'
+                : 'bg-slate-100 text-slate-400 cursor-not-allowed opacity-60 border border-slate-200'
+            }`}
           >
             <div className="flex items-center justify-between w-full mb-2">
-              <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-white/20 text-white font-bold">
-                Primary Action
+              <span className={`text-[10px] uppercase font-mono px-1.5 py-0.5 rounded font-bold ${
+                fc.generateBlueprint ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-500'
+              }`}>
+                {fc.generateBlueprint ? 'Primary Action' : 'Disabled by Admin'}
               </span>
-              <Sparkles className="w-4 h-4 fill-white" />
+              <Sparkles className="w-4 h-4 fill-current" />
             </div>
             <div>
-              <div className="text-sm font-extrabold text-white">Generate 3D Blueprint</div>
-              <div className="text-[11px] font-normal text-blue-100 mt-0.5">
-                AI Isometric Schematic with glowing transit mesh
+              <div className={`text-sm font-extrabold ${fc.generateBlueprint ? 'text-white' : 'text-slate-600'}`}>
+                {fc.generateBlueprint ? 'Generate 3D Blueprint' : 'Blueprint Engine (Disabled)'}
+              </div>
+              <div className={`text-[11px] font-normal mt-0.5 ${fc.generateBlueprint ? 'text-blue-100' : 'text-slate-400'}`}>
+                {fc.generateBlueprint ? 'AI Isometric Schematic with glowing transit mesh' : 'Feature currently restricted by administrator'}
               </div>
             </div>
           </button>
@@ -737,8 +754,14 @@ export const Step4TargetAndDR: React.FC<Step4TargetAndDRProps> = ({
           <div className="flex items-center gap-2.5">
             <button
               type="button"
-              onClick={onOpenDossier}
-              className="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold flex items-center gap-2 cursor-pointer transition shadow-xs"
+              onClick={fc.exportDossier ? onOpenDossier : undefined}
+              disabled={!fc.exportDossier}
+              className={`px-3.5 py-2 rounded-xl border font-semibold flex items-center gap-2 transition shadow-xs ${
+                fc.exportDossier
+                  ? 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700 cursor-pointer'
+                  : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
+              }`}
+              title={fc.exportDossier ? 'Open Executive Architecture Dossier' : 'Dossier generation disabled by administrator'}
             >
               <Printer className="w-3.5 h-3.5 text-slate-600" />
               <span>Executive Dossier</span>
@@ -746,8 +769,14 @@ export const Step4TargetAndDR: React.FC<Step4TargetAndDRProps> = ({
 
             <button
               type="button"
-              onClick={onExport4K}
-              className="px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 font-bold flex items-center gap-2 cursor-pointer transition shadow-xs"
+              onClick={fc.export4k ? onExport4K : undefined}
+              disabled={!fc.export4k}
+              className={`px-3.5 py-2 rounded-xl border font-bold flex items-center gap-2 transition shadow-xs ${
+                fc.export4k
+                  ? 'bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700 cursor-pointer'
+                  : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
+              }`}
+              title={fc.export4k ? 'Download 4K Blueprint PNG' : '4K Blueprint download disabled by administrator'}
             >
               <Download className="w-3.5 h-3.5 text-blue-600" />
               <span>Download 4K Blueprint</span>

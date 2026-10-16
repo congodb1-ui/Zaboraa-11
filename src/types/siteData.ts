@@ -169,6 +169,13 @@ export type HeaderStyle = 'glass' | 'solid' | 'blueprint';
 export type BackgroundPattern = 'tech-grid' | 'dot-matrix' | 'clean-minimal' | 'blueprint-glow';
 export type ImageAnimationType = 'ken-burns' | 'scanline' | 'hover-zoom' | 'all' | 'none';
 
+export interface FeatureControlsConfig {
+  exportDossier: boolean;
+  exportExecutiveSummary: boolean;
+  export4k: boolean;
+  generateBlueprint: boolean;
+}
+
 export interface AdminSettings {
   themePreset: ThemePreset;
   layoutDensity: LayoutDensity;
@@ -186,6 +193,7 @@ export interface AdminSettings {
   enableAuditTelemetry: boolean;
   publicAccessEnabled: boolean;
   authRequiredForTools: boolean;
+  featureControls?: FeatureControlsConfig;
 }
 
 export interface PlatformShowcase {

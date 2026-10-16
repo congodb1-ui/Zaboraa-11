@@ -310,8 +310,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      const simRole: UserRole = cleanEmail === 'admin@zaboraa.com' ? 'admin' : 'user';
-      const simTier: SubscriptionTier = cleanEmail === 'admin@zaboraa.com' ? 'enterprise' : 'free';
+      // Newly registered users are always standard 'user' role with 'free' tier (never auto-elevated to admin)
+      const simRole: UserRole = 'user';
+      const simTier: SubscriptionTier = 'free';
       const registered: AuthUserProfile = {
         uid: 'user-' + Date.now(),
         email: cleanEmail,

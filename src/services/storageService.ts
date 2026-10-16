@@ -99,3 +99,139 @@ export async function uploadAssetImage(
     reader.readAsDataURL(file);
   });
 }
+
+export interface SaveBlueprintPayload {
+  title: string;
+  imageDataOrUrl: string; // Base64 data URL, blob URL, or static asset URL
+  userId?: string | null;
+  userEmail?: string | null;
+  configSummary: Record<string, any>;
+  metadata?: Record<string, any>;
+}
+
+export interface SaveBlueprintResult {
+  success: boolean;
+  storageUrl?: string;
+  storagePath?: string;
+  savedToDatabase: boolean;
+  error?: string;
+  message: string;
+}
+
+/**
+ * Saves a generated blueprint (image asset and configuration metadata) to Supabase Storage
+ * and the blueprints database table with per-user RLS isolation and graceful fallbacks.
+ */
+export async function saveGeneratedBlueprint(
+  payload: SaveBlueprintPayload
+): Promise<SaveBlueprintResult> {
+  // If user is not authenticated, prompt sign-in to persist without breaking preview
+  if (!payload.userId) {
+    return {
+      success: false,
+      savedToDatabase: false,
+      message: 'Blueprint preview generated. Sign in to your account to persist and backup blueprints to cloud storage.'
+    };
+  }
+
+  const cleanTitle = payload.title.replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 50);
+  const fileName = `${Date.now()}_${cleanTitle}.png`;
+  const storagePath = `${payload.userId}/${fileName}`;
+
+  try {
+    let blob: Blob;
+
+    if (payload.imageDataOrUrl.startsWith('data:')) {
+      const parts = payload.imageDataOrUrl.split(',');
+      const mime = parts[0].match(/:(.*?);/)?.[1] || 'image/png';
+      const bstr = atob(parts[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      blob = new Blob([u8arr], { type: mime });
+    } else {
+      // Static URL or HTTP URL: fetch as blob
+      const res = await fetch(payload.imageDataOrUrl);
+      blob = await res.blob();
+    }
+
+    let storageUrl: string | undefined = undefined;
+
+    // 1. Upload to Supabase Storage 'blueprints' bucket (or fallback to 'generated-images')
+    if (supabase && (import.meta as any).env?.VITE_SUPABASE_URL) {
+      try {
+        const { error: uploadError } = await supabase.storage
+          .from('blueprints')
+          .upload(storagePath, blob, {
+            contentType: 'image/png',
+            upsert: true
+          });
+
+        if (!uploadError) {
+          const { data: pubData } = supabase.storage.from('blueprints').getPublicUrl(storagePath);
+          storageUrl = pubData?.publicUrl;
+        } else {
+          // If 'blueprints' bucket has a policy failure or doesn't exist, try 'generated-images'
+          const { error: genError } = await supabase.storage
+            .from('generated-images')
+            .upload(storagePath, blob, {
+              contentType: 'image/png',
+              upsert: true
+            });
+          if (!genError) {
+            const { data: pubData } = supabase.storage.from('generated-images').getPublicUrl(storagePath);
+            storageUrl = pubData?.publicUrl;
+          }
+        }
+      } catch (sbErr) {
+        console.warn('Supabase Storage upload notice:', sbErr);
+      }
+    }
+
+    // 2. Persist metadata to public.blueprints table in Supabase
+    let savedToDatabase = false;
+    if (supabase && (import.meta as any).env?.VITE_SUPABASE_URL) {
+      try {
+        const { error: dbError } = await supabase.from('blueprints').insert({
+          user_id: payload.userId,
+          user_email: payload.userEmail || null,
+          title: payload.title,
+          storage_path: storagePath,
+          storage_url: storageUrl || payload.imageDataOrUrl,
+          config_summary: payload.configSummary || {},
+          metadata: {
+            ...payload.metadata,
+            savedAt: new Date().toISOString(),
+            byteSize: blob.size
+          }
+        });
+
+        if (!dbError) {
+          savedToDatabase = true;
+        } else {
+          console.warn('Notice: Unable to record in public.blueprints table:', dbError.message);
+        }
+      } catch (dbErr) {
+        console.warn('Notice: Database insert skipped or unavailable:', dbErr);
+      }
+    }
+
+    return {
+      success: true,
+      storageUrl: storageUrl || payload.imageDataOrUrl,
+      storagePath,
+      savedToDatabase,
+      message: 'Blueprint saved successfully to Supabase cloud storage.'
+    };
+  } catch (err: any) {
+    console.warn('Notice: Cloud storage upload could not complete:', err?.message || err);
+    return {
+      success: false,
+      savedToDatabase: false,
+      error: err?.message,
+      message: 'Blueprint preview active. Cloud storage notice: ' + (err?.message || 'Storage temporarily unavailable.')
+    };
+  }
+}

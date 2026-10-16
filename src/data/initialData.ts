@@ -25,7 +25,13 @@ export const INITIAL_SITE_DATA: SiteConfig = {
     clientName: 'Enterprise Cloud Migration Assessment',
     enableAuditTelemetry: true,
     publicAccessEnabled: true,
-    authRequiredForTools: false
+    authRequiredForTools: false,
+    featureControls: {
+      exportDossier: true,
+      exportExecutiveSummary: true,
+      export4k: true,
+      generateBlueprint: true
+    }
   },
   platformShowcases: [
     {
