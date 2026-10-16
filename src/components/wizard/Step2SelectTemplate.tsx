@@ -54,7 +54,7 @@ const TEMPLATE_OPTIONS: TemplateOption[] = [
     targetTech: 'Azure VMware Solution (AVS Gen 2)',
     nodeSku: 'AV36P / AV64 Dedicated Bare-Metal',
     recommendedNodes: 4,
-    interconnect: 'ExpressRoute FastPath (10 Gbps)',
+    interconnect: 'Azure ExpressRoute FastPath (10 Gbps)',
     security: 'Palo Alto VM-Series / Azure Firewall Premium',
     storage: 'Azure NetApp Files (ANF NFS Datastores)',
     tagColor: 'border-cyan-500/40 text-cyan-300 bg-cyan-950/40'
@@ -70,7 +70,7 @@ const TEMPLATE_OPTIONS: TemplateOption[] = [
     targetTech: 'Nutanix NC2 on Azure Bare-Metal',
     nodeSku: 'AN36P (36 cores, 768GB RAM, 19.2TB NVMe)',
     recommendedNodes: 4,
-    interconnect: 'ExpressRoute FastPath with Nutanix Flow VPC',
+    interconnect: 'Azure ExpressRoute FastPath with Flow VPC',
     security: 'Nutanix Flow Security + Azure NVA',
     storage: 'Nutanix DSF (Distributed Storage Fabric)',
     tagColor: 'border-emerald-500/40 text-emerald-300 bg-emerald-950/40'
@@ -86,7 +86,7 @@ const TEMPLATE_OPTIONS: TemplateOption[] = [
     targetTech: 'Nutanix NC2 on Azure (Prism Central)',
     nodeSku: 'AN36P / AN64 Dedicated Bare-Metal',
     recommendedNodes: 4,
-    interconnect: 'ExpressRoute FastPath Direct Peering',
+    interconnect: 'Azure ExpressRoute FastPath Direct Peering',
     security: 'Nutanix Flow Network Microsegmentation',
     storage: 'Native AOS Multi-Cluster DSF',
     tagColor: 'border-teal-500/40 text-teal-300 bg-teal-950/40'
@@ -122,22 +122,6 @@ const TEMPLATE_OPTIONS: TemplateOption[] = [
     security: 'AWS Network Firewall & Fortinet FortiGate',
     storage: 'Amazon FSx for NetApp ONTAP (NFS)',
     tagColor: 'border-amber-500/40 text-amber-300 bg-amber-950/40'
-  },
-  {
-    id: 'custom-path',
-    canonicalTemplateId: 'multi-cloud',
-    title: 'Custom Path (Multi-Cloud)',
-    provider: 'Multi-Cloud',
-    badge: 'Hybrid & Cross-Cloud Mesh',
-    description: 'Distributed multi-cloud topology connecting multiple hyperscalers with carrier-neutral Equinix/Megaport fabric and centralized edge security.',
-    sourceTech: 'Heterogeneous Enterprise Infrastructure',
-    targetTech: 'Multi-Cloud BareMetal & Native Workloads',
-    nodeSku: 'Custom Multi-Cloud Nodes',
-    recommendedNodes: 6,
-    interconnect: 'Equinix / Megaport Cloud Router Mesh',
-    security: 'Centralized Multi-Cloud NVA & WAF',
-    storage: 'Cross-Cloud Decoupled Storage Array',
-    tagColor: 'border-purple-500/40 text-purple-300 bg-purple-950/40'
   }
 ];
 
@@ -161,60 +145,110 @@ export const Step2SelectTemplate: React.FC<Step2SelectTemplateProps> = ({
       let landingZone = 'Azure Virtual WAN Hub-and-Spoke';
       let drEngine = 'VMware SRM + vSphere Replication';
       let interconnectType = 'Azure ExpressRoute FastPath (10 Gbps)';
+      let sourcePlatform = prev.sourcePlatform;
+      let selectedPublicProviders: WizardState['selectedPublicProviders'] = ['azure'];
+      let vdiPlatform: WizardState['vdiConfig']['platform'] = 'Azure Virtual Desktop (AVD)';
+      let cloudNativeServices: string[] = [];
 
       if (template.id === 'vmware-to-avs') {
         targetPlatform = 'avs-gen2';
-        nodeSku = 'AV36P';
+        nodeSku = 'AV64';
         targetNodes = 4;
+        sourcePlatform = 'vmware';
+        selectedPublicProviders = ['azure'];
         decoupledStorageProvider = 'Azure NetApp Files (ANF NFS Datastore)';
         interconnectType = 'Azure ExpressRoute FastPath (10 Gbps)';
         landingZone = 'Azure Virtual WAN Hub-and-Spoke';
-        drEngine = 'VMware SRM + vSphere Replication';
+        firewallProvider = 'Palo Alto Networks VM-Series';
+        drEngine = 'VMware Site Recovery Manager (SRM) + vSphere Replication';
+        vdiPlatform = 'Azure Virtual Desktop (AVD)';
+        cloudNativeServices = [
+          'Azure Virtual Network Peering & Transit',
+          'Managed Azure Kubernetes (AKS)',
+          'Azure SQL Managed Instance',
+          'Azure Storage Accounts & Blob Data',
+          'Azure Private Link & Private Endpoints'
+        ];
       } else if (template.id === 'vmware-to-nc2') {
         targetPlatform = 'nc2-azure';
         nodeSku = 'AN36P';
         targetNodes = 4;
+        sourcePlatform = 'vmware';
+        selectedPublicProviders = ['azure'];
         decoupledStorageProvider = 'Native Nutanix DSF Storage';
         interconnectType = 'Azure ExpressRoute FastPath with Flow VPC';
+        landingZone = 'Azure Virtual WAN Hub-and-Spoke';
+        firewallProvider = 'Nutanix Flow Security + Azure NVA';
         drEngine = 'Nutanix Move Cross-Hypervisor';
-        prev.sourcePlatform = 'vmware';
+        vdiPlatform = 'Nutanix Frame';
+        cloudNativeServices = [
+          'Azure Virtual Network Peering & Transit',
+          'Azure Storage Accounts & Blob Data',
+          'Azure Private Link & Private Endpoints'
+        ];
       } else if (template.id === 'nutanix-to-nc2') {
         targetPlatform = 'nc2-azure';
         nodeSku = 'AN36P';
         targetNodes = 4;
+        sourcePlatform = 'nutanix';
+        selectedPublicProviders = ['azure'];
         decoupledStorageProvider = 'Native Nutanix DSF Storage';
-        interconnectType = 'Azure ExpressRoute FastPath Direct';
+        interconnectType = 'Azure ExpressRoute FastPath Direct Peering';
+        landingZone = 'Azure Virtual WAN Hub-and-Spoke';
+        firewallProvider = 'Nutanix Flow Network Microsegmentation';
         drEngine = 'Nutanix Protection Domains (NearSync & Metro)';
-        prev.sourcePlatform = 'nutanix';
+        vdiPlatform = 'Nutanix Frame';
+        cloudNativeServices = [
+          'Azure Virtual Network Peering & Transit',
+          'Azure Storage Accounts & Blob Data',
+          'Azure Private Link & Private Endpoints'
+        ];
       } else if (template.id === 'vmware-to-gcve') {
         targetPlatform = 'gcve';
         nodeSku = 've1-standard-72';
         targetNodes = 4;
+        sourcePlatform = 'vmware';
+        selectedPublicProviders = ['gcp'];
         decoupledStorageProvider = 'Google Cloud NetApp Volumes (GCNV NFS Datastore)';
         interconnectType = 'Google Cloud Dedicated Interconnect (10G)';
         landingZone = 'Google Cloud Shared VPC + Cloud NCC';
-        drEngine = 'VMware HCX / Google Cloud Interconnect';
+        firewallProvider = 'Google Cloud Armor & Next-Gen NVA';
+        drEngine = 'Zerto Continuous Data Protection (CDP)';
+        vdiPlatform = 'Citrix DaaS';
+        cloudNativeServices = [
+          'Google Cloud Shared VPC & NCC',
+          'Google Kubernetes Engine (GKE)',
+          'Google Cloud SQL Managed Instance',
+          'Google Cloud Storage (GCS)',
+          'BigQuery & Vertex AI Analytics'
+        ];
       } else if (template.id === 'vmware-to-vmc') {
         targetPlatform = 'vmc-aws';
         nodeSku = 'i4i.metal';
         targetNodes = 3;
+        sourcePlatform = 'vmware';
+        selectedPublicProviders = ['aws'];
         decoupledStorageProvider = 'Amazon FSx for NetApp ONTAP (NFS Datastore)';
         interconnectType = 'AWS Direct Connect Gateway (10G)';
         landingZone = 'AWS Transit Gateway (TGW) Hub';
         firewallProvider = 'Fortinet FortiGate-VM';
         drEngine = 'VMware Site Recovery Manager (SRM) + vSphere Replication';
-      } else if (template.id === 'custom-path') {
-        targetPlatform = 'avs-gen2';
-        nodeSku = 'AV36P';
-        targetNodes = 6;
-        interconnectType = 'Multi-Cloud Equinix Fabric Mesh';
-        landingZone = 'Multi-Cloud Transit Hub Mesh';
+        vdiPlatform = 'Amazon WorkSpaces';
+        cloudNativeServices = [
+          'AWS Transit Gateway (TGW) & Connected VPC',
+          'Amazon Elastic Kubernetes Service (EKS)',
+          'Amazon Aurora PostgreSQL / RDS',
+          'Amazon S3 Object Storage & Glacier'
+        ];
       }
 
+      // Automatically purge cross-vendor incompatible settings
       return {
         ...prev,
         templateChoice: template.id,
         activeTemplate: template.canonicalTemplateId,
+        sourcePlatform,
+        selectedPublicProviders,
         targetPlatform,
         targetNodeSku: nodeSku,
         targetNodeCount: targetNodes,
@@ -224,6 +258,13 @@ export const Step2SelectTemplate: React.FC<Step2SelectTemplateProps> = ({
         interconnectConfig: {
           ...prev.interconnectConfig,
           type: interconnectType
+        },
+        cloudNativeConfig: {
+          selectedServices: cloudNativeServices
+        },
+        vdiConfig: {
+          ...prev.vdiConfig,
+          platform: vdiPlatform
         },
         otherServicesConfig: {
           ...prev.otherServicesConfig,

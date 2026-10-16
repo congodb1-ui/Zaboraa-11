@@ -248,7 +248,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loginWithEmail = async (email: string, pass: string): Promise<AuthUserProfile> => {
     setAuthError(null);
-    const cleanEmail = email.trim();
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Dedicated Hardcoded Enterprise Administrator Credentials
+    if (cleanEmail === 'admin@zaboraa.com' && pass === 'Zaboraa@123!') {
+      const adminProfile: AuthUserProfile = {
+        uid: 'admin-master-root',
+        email: 'admin@zaboraa.com',
+        displayName: 'Enterprise Administrator',
+        photoURL: null,
+        licenseTier: 'enterprise',
+        role: 'admin',
+        provider: 'password'
+      };
+      setUser(adminProfile);
+      setSubscriptionTierState('enterprise');
+      saveLocalStoredUser(adminProfile);
+      return adminProfile;
+    }
+
     try {
       if (supabase && isSupabaseConfigured) {
         const { data, error } = await supabase.auth.signInWithPassword({

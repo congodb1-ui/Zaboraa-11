@@ -74,15 +74,53 @@ export const Step3InfrastructureComponents: React.FC<Step3InfrastructureComponen
     });
   };
 
-  const cloudNativeOptions = [
-    { id: 'vnet-peering', label: 'Virtual Network / VPC Peering & Transit', desc: 'Direct low-latency backbone routing to cloud native landing zone' },
-    { id: 'k8s', label: 'Managed Kubernetes (AKS / EKS / GKE)', desc: 'Containerized microservices running adjacent to bare-metal SDDC' },
-    { id: 'db', label: 'Cloud-Native SQL Database (Azure SQL / Aurora / Cloud SQL)', desc: 'Managed high-availability transactional data tier' },
-    { id: 'storage', label: 'Cloud Object Storage (Azure Blob / S3 / GCS)', desc: 'Scalable immutable data lakes and long-term archive tiers' },
-    { id: 'privatelink', label: 'Azure Private Link / Private Endpoints', desc: 'Secure non-internet routing to PaaS endpoints' },
-    { id: 'identity', label: 'Identity & Key Management (Entra ID / Cloud KMS)', desc: 'Enterprise RBAC, Single Sign-On, and Hardware Security Module keys' },
-    { id: 'analytics', label: 'BigQuery / Synapse / Vertex AI Analytics', desc: 'Direct line-rate analytical query pipelines on production data' }
-  ];
+  const template = wizardState.templateChoice || 'vmware-to-avs';
+  const isAzure = template === 'vmware-to-avs' || template === 'vmware-to-nc2' || template === 'nutanix-to-nc2';
+  const isAws = template === 'vmware-to-vmc';
+  const isGcp = template === 'vmware-to-gcve';
+  const isNutanix = template === 'vmware-to-nc2' || template === 'nutanix-to-nc2';
+
+  const cloudNativeOptions = React.useMemo(() => {
+    if (isAws) {
+      return [
+        { id: 'tgw', label: 'AWS Transit Gateway (TGW) & Connected VPC', desc: 'Direct line-rate ENI backbone routing to AWS native VPC' },
+        { id: 'eks', label: 'Amazon Elastic Kubernetes Service (EKS)', desc: 'Containerized microservices running adjacent to bare-metal VMC SDDC' },
+        { id: 'db', label: 'Amazon Aurora PostgreSQL / RDS', desc: 'Managed high-availability relational data tier with Multi-AZ' },
+        { id: 'storage', label: 'Amazon S3 Object Storage & Glacier', desc: 'Scalable immutable data lakes and long-term archive tiers' },
+        { id: 'privatelink', label: 'AWS PrivateLink & Interface Endpoints', desc: 'Secure non-internet routing to AWS PaaS endpoints' },
+        { id: 'identity', label: 'AWS KMS & IAM Identity Center', desc: 'Enterprise RBAC, Single Sign-On, and KMS encryption keys' }
+      ];
+    }
+    if (isGcp) {
+      return [
+        { id: 'shared-vpc', label: 'Google Cloud Shared VPC & NCC', desc: 'Network Connectivity Center hub routing directly into GCVE SDDC' },
+        { id: 'gke', label: 'Google Kubernetes Engine (GKE)', desc: 'Containerized microservices running adjacent to bare-metal GCVE SDDC' },
+        { id: 'db', label: 'Google Cloud SQL Managed Instance', desc: 'Managed high-availability transactional data tier with Cloud SQL' },
+        { id: 'storage', label: 'Google Cloud Storage (GCS)', desc: 'Scalable immutable data lakes and long-term archive tiers' },
+        { id: 'analytics', label: 'BigQuery & Vertex AI Analytics', desc: 'Direct line-rate analytical query pipelines on production data' },
+        { id: 'identity', label: 'Google Cloud KMS & Cloud IAM', desc: 'Enterprise RBAC, Cloud IAM, and Cloud HSM keys' }
+      ];
+    }
+    if (isNutanix) {
+      return [
+        { id: 'flow-vpc', label: 'Nutanix Flow Virtual Networking (VPC)', desc: 'Software-defined overlay network integrated with Azure native subnets' },
+        { id: 'vnet-peering', label: 'Azure Virtual Network Peering & Transit', desc: 'Direct low-latency backbone routing to Azure native landing zone' },
+        { id: 'storage', label: 'Azure Storage Accounts & Blob Data', desc: 'Scalable immutable data lakes and long-term archive tiers' },
+        { id: 'privatelink', label: 'Azure Private Link / Private Endpoints', desc: 'Secure non-internet routing to PaaS endpoints' },
+        { id: 'identity', label: 'Microsoft Entra ID & Key Vault', desc: 'Enterprise RBAC, Single Sign-On, and Hardware Security Module keys' }
+      ];
+    }
+    // Default Azure AVS
+    return [
+      { id: 'vnet-peering', label: 'Azure Virtual Network Peering & Transit', desc: 'Direct low-latency backbone routing to Azure native landing zone' },
+      { id: 'k8s', label: 'Managed Azure Kubernetes (AKS)', desc: 'Containerized microservices running adjacent to bare-metal SDDC' },
+      { id: 'db', label: 'Azure SQL Managed Instance', desc: 'Managed high-availability transactional data tier' },
+      { id: 'storage', label: 'Azure Storage Accounts & Blob Data', desc: 'Scalable immutable data lakes and long-term archive tiers' },
+      { id: 'privatelink', label: 'Azure Private Link & Private Endpoints', desc: 'Secure non-internet routing to PaaS endpoints' },
+      { id: 'identity', label: 'Microsoft Entra ID & Azure Key Vault', desc: 'Enterprise RBAC, Single Sign-On, and Hardware Security Module keys' },
+      { id: 'analytics', label: 'Azure Synapse & Fabric Analytics', desc: 'Direct analytical query pipelines on production data' }
+    ];
+  }, [isAws, isGcp, isNutanix]);
 
   return (
     <div className="space-y-6">
@@ -97,7 +135,7 @@ export const Step3InfrastructureComponents: React.FC<Step3InfrastructureComponen
           Select Infrastructure Components
         </h2>
         <p className="text-sm text-slate-400 max-w-3xl leading-relaxed">
-          Enable or disable specific architectural tiers independently. The generated 3D blueprint and prompt will reflect only the components you select, with clean, direct connections and no extraneous services.
+          Enable or disable specific architectural tiers independently. Active options are strictly filtered to the compatible platform matrix for <strong className="text-cyan-300 font-mono">{wizardState.templateChoice}</strong>.
         </p>
       </div>
 
@@ -167,12 +205,30 @@ export const Step3InfrastructureComponents: React.FC<Step3InfrastructureComponen
                     }
                     className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:border-cyan-500 font-mono"
                   >
-                    <option value="Azure ExpressRoute FastPath (10 Gbps)">Azure ExpressRoute FastPath (10 Gbps)</option>
-                    <option value="Azure ExpressRoute Direct (100 Gbps)">Azure ExpressRoute Direct (100 Gbps)</option>
-                    <option value="AWS Direct Connect Dedicated (10 Gbps)">AWS Direct Connect Dedicated (10 Gbps)</option>
-                    <option value="Google Cloud Dedicated Interconnect (10 Gbps)">Google Cloud Dedicated Interconnect (10 Gbps)</option>
-                    <option value="High-Performance IPSec VPN Tunnel (BGP)">High-Performance IPSec VPN Tunnel (BGP)</option>
-                    <option value="Equinix / Megaport Multi-Cloud Fabric">Equinix / Megaport Multi-Cloud Fabric</option>
+                    {isAzure && (
+                      <>
+                        <option value="Azure ExpressRoute FastPath (10 Gbps)">Azure ExpressRoute FastPath (10 Gbps)</option>
+                        <option value="Azure ExpressRoute Direct (100 Gbps)">Azure ExpressRoute Direct (100 Gbps)</option>
+                        {isNutanix && (
+                          <option value="Azure ExpressRoute FastPath with Flow VPC">Azure ExpressRoute FastPath with Flow VPC</option>
+                        )}
+                        <option value="High-Performance IPSec VPN Tunnel (BGP)">High-Performance IPSec VPN Tunnel (BGP)</option>
+                      </>
+                    )}
+                    {isAws && (
+                      <>
+                        <option value="AWS Direct Connect Gateway (10G)">AWS Direct Connect Gateway (10G)</option>
+                        <option value="AWS Direct Connect Dedicated (10 Gbps)">AWS Direct Connect Dedicated (10 Gbps)</option>
+                        <option value="High-Performance IPSec VPN Tunnel (BGP)">High-Performance IPSec VPN Tunnel (BGP)</option>
+                      </>
+                    )}
+                    {isGcp && (
+                      <>
+                        <option value="Google Cloud Dedicated Interconnect (10G)">Google Cloud Dedicated Interconnect (10G)</option>
+                        <option value="Google Cloud Partner Interconnect (10G/100G)">Google Cloud Partner Interconnect (10G/100G)</option>
+                        <option value="High-Performance IPSec VPN Tunnel (BGP)">High-Performance IPSec VPN Tunnel (BGP)</option>
+                      </>
+                    )}
                   </select>
                 </div>
 
@@ -322,13 +378,30 @@ export const Step3InfrastructureComponents: React.FC<Step3InfrastructureComponen
                     }
                     className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:border-emerald-500 font-mono"
                   >
-                    <option value="Palo Alto Networks VM-Series">Palo Alto Networks VM-Series (Panorama)</option>
-                    <option value="Fortinet FortiGate-VM">Fortinet FortiGate-VM (Security Fabric)</option>
-                    <option value="Azure Firewall Premium / Native">Azure Firewall Premium (TLS Inspection)</option>
-                    <option value="Check Point CloudGuard">Check Point CloudGuard Network</option>
-                    <option value="Cisco Secure Firewall Threat Defense">Cisco Secure Firewall Threat Defense</option>
-                    <option value="AWS Network Firewall">AWS Network Firewall</option>
-                    <option value="Google Cloud Armor">Google Cloud Armor Enterprise</option>
+                    {isAzure && (
+                      <>
+                        <option value="Palo Alto Networks VM-Series">Palo Alto Networks VM-Series (Panorama)</option>
+                        <option value="Azure Firewall Premium / Native">Azure Firewall Premium (TLS Inspection)</option>
+                        <option value="Fortinet FortiGate-VM">Fortinet FortiGate-VM (Security Fabric)</option>
+                        <option value="Check Point CloudGuard">Check Point CloudGuard Network</option>
+                        {isNutanix && <option value="Nutanix Flow Security + Azure NVA">Nutanix Flow Security + Azure NVA</option>}
+                      </>
+                    )}
+                    {isAws && (
+                      <>
+                        <option value="AWS Network Firewall">AWS Network Firewall</option>
+                        <option value="Fortinet FortiGate-VM">Fortinet FortiGate-VM (Security Fabric)</option>
+                        <option value="Palo Alto Networks VM-Series">Palo Alto Networks VM-Series (Panorama)</option>
+                        <option value="Check Point CloudGuard">Check Point CloudGuard Network</option>
+                      </>
+                    )}
+                    {isGcp && (
+                      <>
+                        <option value="Google Cloud Armor & Next-Gen NVA">Google Cloud Armor & Next-Gen NVA</option>
+                        <option value="Palo Alto Networks VM-Series">Palo Alto Networks VM-Series (Panorama)</option>
+                        <option value="Fortinet FortiGate-VM">Fortinet FortiGate-VM (Security Fabric)</option>
+                      </>
+                    )}
                   </select>
                 </div>
 
@@ -345,11 +418,27 @@ export const Step3InfrastructureComponents: React.FC<Step3InfrastructureComponen
                     }
                     className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:border-emerald-500 font-mono"
                   >
-                    <option value="Azure WAF on Application Gateway">Azure WAF on Application Gateway</option>
-                    <option value="Cloudflare Magic Transit">Cloudflare Magic Transit & WAF</option>
-                    <option value="AWS WAF">AWS WAF (Regional & CloudFront)</option>
-                    <option value="F5 Distributed Cloud WAF">F5 Distributed Cloud WAF</option>
-                    <option value="Google Cloud Armor WAF">Google Cloud Armor WAF</option>
+                    {isAzure && (
+                      <>
+                        <option value="Azure WAF on Application Gateway">Azure WAF on Application Gateway</option>
+                        <option value="Azure Front Door Premium WAF">Azure Front Door Premium WAF</option>
+                        <option value="Cloudflare Magic Transit">Cloudflare Magic Transit & WAF</option>
+                      </>
+                    )}
+                    {isAws && (
+                      <>
+                        <option value="AWS WAF">AWS WAF (Regional & CloudFront)</option>
+                        <option value="F5 Distributed Cloud WAF">F5 Distributed Cloud WAF</option>
+                        <option value="Cloudflare Magic Transit">Cloudflare Magic Transit & WAF</option>
+                      </>
+                    )}
+                    {isGcp && (
+                      <>
+                        <option value="Google Cloud Armor WAF">Google Cloud Armor WAF</option>
+                        <option value="F5 Distributed Cloud WAF">F5 Distributed Cloud WAF</option>
+                        <option value="Cloudflare Magic Transit">Cloudflare Magic Transit & WAF</option>
+                      </>
+                    )}
                   </select>
                 </div>
 
@@ -552,11 +641,27 @@ export const Step3InfrastructureComponents: React.FC<Step3InfrastructureComponen
                     }
                     className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:border-blue-500 font-mono"
                   >
-                    <option value="Azure Virtual Desktop (AVD)">Azure Virtual Desktop (AVD)</option>
-                    <option value="VMware Horizon Cloud on AVS/VMC">VMware Horizon Cloud</option>
-                    <option value="Citrix DaaS on Cloud">Citrix DaaS Hybrid</option>
-                    <option value="Nutanix Frame on Azure">Nutanix Frame on Azure</option>
-                    <option value="Amazon WorkSpaces Core">Amazon WorkSpaces Core</option>
+                    {isAzure && (
+                      <>
+                        <option value="Azure Virtual Desktop (AVD)">Azure Virtual Desktop (AVD)</option>
+                        <option value="VMware Horizon Cloud">VMware Horizon Cloud on Azure</option>
+                        <option value="Citrix DaaS">Citrix DaaS on Azure</option>
+                        {isNutanix && <option value="Nutanix Frame">Nutanix Frame on Azure</option>}
+                      </>
+                    )}
+                    {isAws && (
+                      <>
+                        <option value="Amazon WorkSpaces">Amazon WorkSpaces Core</option>
+                        <option value="VMware Horizon Cloud">VMware Horizon Cloud on AWS</option>
+                        <option value="Citrix DaaS">Citrix DaaS on AWS</option>
+                      </>
+                    )}
+                    {isGcp && (
+                      <>
+                        <option value="Citrix DaaS">Citrix DaaS on Google Cloud</option>
+                        <option value="VMware Horizon Cloud">VMware Horizon Cloud on GCP</option>
+                      </>
+                    )}
                   </select>
                 </div>
 
@@ -591,10 +696,25 @@ export const Step3InfrastructureComponents: React.FC<Step3InfrastructureComponen
                     }
                     className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:border-blue-500 font-mono"
                   >
-                    <option value="Azure Files Premium (FSLogix Profiles)">Azure Files Premium (FSLogix)</option>
-                    <option value="Azure NetApp Files Ultra">Azure NetApp Files Ultra</option>
-                    <option value="Amazon FSx ONTAP Clustered SMB">Amazon FSx ONTAP SMB</option>
-                    <option value="Nutanix Files SMB Profile Share">Nutanix Files SMB</option>
+                    {isAzure && (
+                      <>
+                        <option value="Azure Files Premium (FSLogix Profiles)">Azure Files Premium (FSLogix Profiles)</option>
+                        <option value="Azure NetApp Files Ultra">Azure NetApp Files Ultra</option>
+                        {isNutanix && <option value="Nutanix Files SMB Profile Share">Nutanix Files SMB Profile Share</option>}
+                      </>
+                    )}
+                    {isAws && (
+                      <>
+                        <option value="Amazon FSx ONTAP Clustered SMB">Amazon FSx ONTAP Clustered SMB</option>
+                        <option value="Amazon EFS Elastic Profile Share">Amazon EFS Elastic Profile Share</option>
+                      </>
+                    )}
+                    {isGcp && (
+                      <>
+                        <option value="Google Cloud NetApp Volumes SMB">Google Cloud NetApp Volumes SMB</option>
+                        <option value="Filestore Enterprise SMB">Filestore Enterprise SMB</option>
+                      </>
+                    )}
                   </select>
                 </div>
               </div>
@@ -666,11 +786,34 @@ export const Step3InfrastructureComponents: React.FC<Step3InfrastructureComponen
                     }
                     className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:border-amber-500 font-mono"
                   >
-                    <option value="VMware Site Recovery Manager (SRM) + vSphere Replication">VMware SRM + vSphere Replication</option>
-                    <option value="Nutanix Protection Domains (NearSync & Metro Availability)">Nutanix Protection Domains (Metro/NearSync)</option>
-                    <option value="Zerto Continuous Data Protection (CDP)">Zerto Continuous Data Protection (CDP)</option>
-                    <option value="Veeam Backup & Replication Enterprise">Veeam Backup & Replication</option>
-                    <option value="AWS Elastic Disaster Recovery (AWS DRS)">AWS Elastic Disaster Recovery (DRS)</option>
+                    {isAzure && !isNutanix && (
+                      <>
+                        <option value="VMware Site Recovery Manager (SRM) + vSphere Replication">VMware SRM + vSphere Replication</option>
+                        <option value="Azure Site Recovery (ASR)">Azure Site Recovery (ASR)</option>
+                        <option value="Zerto Continuous Data Protection (CDP)">Zerto Continuous Data Protection (CDP)</option>
+                        <option value="Veeam Backup & Replication Enterprise">Veeam Backup & Replication</option>
+                      </>
+                    )}
+                    {isNutanix && (
+                      <>
+                        <option value="Nutanix Protection Domains (NearSync & Metro Availability)">Nutanix Protection Domains (Metro/NearSync)</option>
+                        <option value="Nutanix Move Cross-Hypervisor">Nutanix Move Cross-Hypervisor</option>
+                        <option value="HYCU for Nutanix Enterprise Clouds">HYCU for Nutanix Enterprise Clouds</option>
+                      </>
+                    )}
+                    {isAws && (
+                      <>
+                        <option value="VMware Site Recovery Manager (SRM) + vSphere Replication">VMware SRM + vSphere Replication</option>
+                        <option value="AWS Elastic Disaster Recovery (AWS DRS)">AWS Elastic Disaster Recovery (AWS DRS)</option>
+                        <option value="Zerto Continuous Data Protection (CDP)">Zerto Continuous Data Protection (CDP)</option>
+                      </>
+                    )}
+                    {isGcp && (
+                      <>
+                        <option value="Zerto Continuous Data Protection (CDP)">Zerto Continuous Data Protection (CDP)</option>
+                        <option value="VMware HCX / Google Cloud Interconnect">VMware HCX / Google Cloud Interconnect</option>
+                      </>
+                    )}
                   </select>
                 </div>
 
@@ -802,11 +945,32 @@ export const Step3InfrastructureComponents: React.FC<Step3InfrastructureComponen
                     }
                     className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:border-purple-500 font-mono"
                   >
-                    <option value="Azure NetApp Files (ANF NFS Datastore)">Azure NetApp Files (ANF NFS)</option>
-                    <option value="Amazon FSx for NetApp ONTAP (NFS Datastore)">Amazon FSx for NetApp ONTAP</option>
-                    <option value="Google Cloud NetApp Volumes (GCNV NFS Datastore)">Google Cloud NetApp Volumes (GCNV)</option>
-                    <option value="Pure Storage Cloud Block Store">Pure Storage Cloud Block Store</option>
-                    <option value="None (100% Local All-Flash NVMe)">None (100% Local All-Flash NVMe)</option>
+                    {isAzure && !isNutanix && (
+                      <>
+                        <option value="Azure NetApp Files (ANF NFS Datastore)">Azure NetApp Files (ANF NFS)</option>
+                        <option value="Azure Elastic SAN (iSCSI Datastore)">Azure Elastic SAN (iSCSI)</option>
+                        <option value="None (100% Local All-Flash NVMe)">None (100% Local All-Flash NVMe)</option>
+                      </>
+                    )}
+                    {isNutanix && (
+                      <>
+                        <option value="Native Nutanix DSF Storage">Native Nutanix DSF Storage</option>
+                        <option value="Azure NetApp Files (ANF NFS Datastore)">Azure NetApp Files (ANF NFS)</option>
+                        <option value="None (100% Local All-Flash NVMe)">None (100% Local All-Flash NVMe)</option>
+                      </>
+                    )}
+                    {isAws && (
+                      <>
+                        <option value="Amazon FSx for NetApp ONTAP (NFS Datastore)">Amazon FSx for NetApp ONTAP</option>
+                        <option value="None (100% Local All-Flash NVMe)">None (100% Local All-Flash NVMe)</option>
+                      </>
+                    )}
+                    {isGcp && (
+                      <>
+                        <option value="Google Cloud NetApp Volumes (GCNV NFS Datastore)">Google Cloud NetApp Volumes (GCNV)</option>
+                        <option value="None (100% Local All-Flash NVMe)">None (100% Local All-Flash NVMe)</option>
+                      </>
+                    )}
                   </select>
                 </div>
 
@@ -850,10 +1014,20 @@ export const Step3InfrastructureComponents: React.FC<Step3InfrastructureComponen
                     }
                     className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:border-purple-500 font-mono"
                   >
-                    <option value="VMware HCX Enterprise">VMware HCX Enterprise (Bulk / RAV / MON)</option>
-                    <option value="Nutanix Move">Nutanix Move Appliance (Cross-Hypervisor)</option>
-                    <option value="AWS MGN">AWS Application Migration Service (MGN)</option>
-                    <option value="None">None (In-Place or Greenfield Deploy)</option>
+                    {isNutanix ? (
+                      <option value="Nutanix Move">Nutanix Move Appliance (Cross-Hypervisor)</option>
+                    ) : isAws ? (
+                      <>
+                        <option value="VMware HCX Enterprise">VMware HCX Enterprise (Bulk / RAV / MON)</option>
+                        <option value="AWS MGN">AWS Application Migration Service (MGN)</option>
+                        <option value="None">None (In-Place / Greenfield)</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="VMware HCX Enterprise">VMware HCX Enterprise (Bulk / RAV / MON)</option>
+                        <option value="None">None (In-Place / Greenfield)</option>
+                      </>
+                    )}
                   </select>
                 </div>
               </div>

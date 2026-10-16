@@ -2109,8 +2109,12 @@ export const DesignGeneratorPage: React.FC = () => {
       return;
     }
 
+    setCurrentStep(4);
     setIsGenerating3D(true);
     setShowPreFlightModal(false);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
     setGenerationProgress(10);
     setGenerationStep('Synthesizing verified multi-tier infrastructure parameters...');
 
@@ -2202,7 +2206,9 @@ export const DesignGeneratorPage: React.FC = () => {
 
       setTimeout(() => {
         setIsGenerating3D(false);
-        blueprintSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+        if (typeof window !== 'undefined') {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
       }, 500);
     } catch (err: any) {
       // In case of network error, gracefully fallback
@@ -2242,7 +2248,9 @@ export const DesignGeneratorPage: React.FC = () => {
 
       setTimeout(() => {
         setIsGenerating3D(false);
-        blueprintSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+        if (typeof window !== 'undefined') {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
       }, 500);
     } finally {
       clearTimeout(timer1);
