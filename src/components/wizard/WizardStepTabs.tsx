@@ -5,14 +5,15 @@ import {
   Shield,
   Cloud,
   ChevronRight,
-  ChevronLeft,
   Sparkles,
+  Server,
   Zap,
-  Columns,
-  Maximize2,
-  FileText
+  Globe2,
+  CheckCircle2,
+  ArrowRight
 } from 'lucide-react';
-import { WizardState } from '../../types/wizardStateAdapter';
+import { WizardState, ArchitectureTemplateChoice } from '../../types/wizardStateAdapter';
+import { CANONICAL_TEMPLATES, sanitizeWizardStateForTemplate } from '../../utils/architectureCompatibilityRules';
 
 export interface IndustryTemplatePreset {
   id: string;
@@ -27,483 +28,167 @@ interface WizardStepTabsProps {
   currentStep: number;
   onSelectStep: (step: number) => void;
   wizardState: WizardState;
-  onApplyTemplate: (template: IndustryTemplatePreset) => void;
-  layoutMode: 'split' | 'form-only' | 'canvas-only' | 'preview';
-  onToggleLayoutMode: (mode: 'split' | 'form-only' | 'canvas-only' | 'preview') => void;
-  isCidrValid: boolean;
-  isCompatibilityValid: boolean;
+  onApplyTemplate: (templateChoice: ArchitectureTemplateChoice) => void;
+  isCidrValid?: boolean;
 }
 
-export const INDUSTRY_PRESETS: IndustryTemplatePreset[] = [
+const TEMPLATE_CARDS: Array<{
+  id: ArchitectureTemplateChoice;
+  title: string;
+  subtitle: string;
+  badge: string;
+  providerBadge: string;
+}> = [
   {
-    id: 'vcf-avs-gen2',
-    title: 'VCF 5.2 to AVS Gen 2',
-    subtitle: 'AV64 + Direct vNet + ANF + SRM',
-    tag: 'Flagship Gen 2',
-    tagColor: 'bg-cyan-950 text-cyan-300 border-cyan-800',
-    apply: (prev) => ({
-      ...prev,
-      footprintScope: 'hybrid-multi',
-      sourcePlatform: 'vmware',
-      sourceHypervisorConfig: {
-        vmwareType: 'vcf',
-        vcfVersion: 'VCF 5.2.x',
-        vSphereVersion: '8.0u3',
-        nsxEnabled: true,
-        nsxVersion: '4.2.x',
-        ariaSuite: ['Operations', 'Automation', 'Operations for Networks (vRNI)']
-      },
-      hardwareVendor: 'Dell Technologies',
-      hardwareSku: 'PowerEdge R760 (2x Intel Xeon Gold 6430, up to 1TB RAM)',
-      selectedPublicProviders: ['azure'],
-      connectivityCarrier: 'Direct Circuits with FastPath / Global Reach',
-      landingZonePattern: 'Azure Virtual WAN Hub-and-Spoke',
-      firewallMode: 'dual-layer',
-      firewallProvider: 'Palo Alto Networks VM-Series',
-      dualLayerInspectionFlow: 'sequential',
-      wafEnabled: true,
-      wafSolution: 'Azure WAF on Application Gateway',
-      targetPlatform: 'avs-gen2',
-      targetNodeSku: 'AV64',
-      targetNodeCount: 4,
-      sddcMgmtCidr: '10.240.0.0/22',
-      decoupledStorageEnabled: true,
-      decoupledStorageTB: 120,
-      decoupledStorageProvider: 'Azure NetApp Files (ANF NFS Datastore)',
-      drEnabled: true,
-      drConfig: {
-        engine: 'VMware Site Recovery Manager (SRM) + vSphere Replication',
-        rpoMinutes: 5,
-        rtoMinutes: 20,
-        strategy: 'Pilot Light (3-Node Minimum)'
-      },
-      activeTemplate: 'avs'
-    })
+    id: 'vmware-to-avs',
+    title: 'VMware to AVS',
+    subtitle: 'AV64 + Direct vNet + ANF + HCX',
+    badge: 'Flagship Gen 2',
+    providerBadge: 'Azure'
   },
   {
-    id: 'nutanix-nc2-azure',
-    title: 'Nutanix AHV to NC2 on Azure',
-    subtitle: 'AOS 6.8 + AN36P + Metro Protection',
-    tag: 'Nutanix Hybrid',
-    tagColor: 'bg-emerald-950 text-emerald-300 border-emerald-800',
-    apply: (prev) => ({
-      ...prev,
-      footprintScope: 'hybrid-multi',
-      sourcePlatform: 'nutanix',
-      sourceHypervisorConfig: {
-        vmwareType: 'traditional',
-        nsxEnabled: false,
-        ariaSuite: [],
-        nutanixAosVersion: 'AOS 6.8 LTS (Prism Central)'
-      },
-      hardwareVendor: 'Dell Technologies',
-      hardwareSku: 'VxRail E660F (All-Flash NVMe Hyperconverged Node)',
-      selectedPublicProviders: ['azure'],
-      connectivityCarrier: 'Hybrid (VPN + ExpressRoute / DirectConnect)',
-      landingZonePattern: 'Azure Virtual WAN Hub-and-Spoke',
-      firewallMode: 'native',
-      firewallProvider: 'Azure Firewall Premium / Native',
-      wafEnabled: true,
-      wafSolution: 'Azure WAF on Application Gateway',
-      targetPlatform: 'nc2-azure',
-      targetNodeSku: 'AN36P',
-      targetNodeCount: 4,
-      sddcMgmtCidr: '10.240.0.0/22',
-      decoupledStorageEnabled: false,
-      decoupledStorageTB: 0,
-      drEnabled: true,
-      drConfig: {
-        engine: 'Nutanix Protection Domains (NearSync & Metro Availability)',
-        rpoMinutes: 0,
-        rtoMinutes: 15,
-        strategy: 'Warm Standby (Full Cluster)'
-      },
-      activeTemplate: 'nutanix-to-nc2'
-    })
+    id: 'vmware-to-nc2',
+    title: 'VMware to NC2 on Azure',
+    subtitle: 'Nutanix AN36P + Move + Prism',
+    badge: 'Cross-Hypervisor',
+    providerBadge: 'Azure'
   },
   {
-    id: 'vsphere-vmc-aws',
-    title: 'vSphere 8 to AWS VMC + FSx',
-    subtitle: 'i4i.metal + Amazon FSx ONTAP + SRM',
-    tag: 'AWS SDDC',
-    tagColor: 'bg-amber-950 text-amber-300 border-amber-800',
-    apply: (prev) => ({
-      ...prev,
-      footprintScope: 'hybrid-multi',
-      sourcePlatform: 'vmware',
-      sourceHypervisorConfig: {
-        vmwareType: 'traditional',
-        vSphereVersion: '8.0u3',
-        nsxEnabled: true,
-        nsxVersion: '4.2.x',
-        ariaSuite: ['Operations']
-      },
-      hardwareVendor: 'HPE',
-      hardwareSku: 'ProLiant DL380 Gen11 (2x Intel Xeon Platinum, up to 1TB RAM)',
-      selectedPublicProviders: ['aws'],
-      connectivityCarrier: 'Hybrid (VPN + ExpressRoute / DirectConnect)',
-      landingZonePattern: 'AWS Transit Gateway (TGW) Hub',
-      firewallMode: 'nva',
-      firewallProvider: 'Fortinet FortiGate-VM',
-      wafEnabled: true,
-      wafSolution: 'AWS WAF',
-      targetPlatform: 'vmc-aws',
-      targetNodeSku: 'i4i.metal',
-      targetNodeCount: 3,
-      sddcMgmtCidr: '10.240.0.0/20',
-      decoupledStorageEnabled: true,
-      decoupledStorageTB: 150,
-      decoupledStorageProvider: 'Amazon FSx for NetApp ONTAP (NFS Datastore)',
-      drEnabled: true,
-      drConfig: {
-        engine: 'VMware Site Recovery Manager (SRM) + vSphere Replication',
-        rpoMinutes: 5,
-        rtoMinutes: 30,
-        strategy: 'Pilot Light (3-Node Minimum)'
-      },
-      activeTemplate: 'vmc-aws'
-    })
+    id: 'nutanix-to-nc2',
+    title: 'Nutanix to NC2 on Azure',
+    badge: 'Native AHV',
+    subtitle: 'AOS 6.8 + DSF + Metro Protection',
+    providerBadge: 'Azure'
   },
   {
-    id: 'vsphere-gcve-zerto',
-    title: 'vSphere to Google Cloud GCVE',
-    subtitle: 've1-standard-72 + GCNV + Zerto CDP',
-    tag: 'Google Cloud',
-    tagColor: 'bg-blue-950 text-blue-300 border-blue-800',
-    apply: (prev) => ({
-      ...prev,
-      footprintScope: 'hybrid-multi',
-      sourcePlatform: 'vmware',
-      sourceHypervisorConfig: {
-        vmwareType: 'traditional',
-        vSphereVersion: '8.0u3',
-        nsxEnabled: false,
-        ariaSuite: ['Operations']
-      },
-      hardwareVendor: 'Cisco UCS',
-      hardwareSku: 'UCS B200 M6 Blade Server (Dual Intel Xeon, up to 768GB RAM)',
-      selectedPublicProviders: ['gcp'],
-      connectivityCarrier: 'Hybrid (VPN + ExpressRoute / DirectConnect)',
-      landingZonePattern: 'Google Cloud Shared VPC + Cloud NCC',
-      firewallMode: 'nva',
-      firewallProvider: 'Palo Alto Networks VM-Series',
-      wafEnabled: false,
-      targetPlatform: 'gcve',
-      targetNodeSku: 've1-standard-72',
-      targetNodeCount: 4,
-      sddcMgmtCidr: '10.100.0.0/22',
-      decoupledStorageEnabled: true,
-      decoupledStorageTB: 100,
-      decoupledStorageProvider: 'Google Cloud NetApp Volumes (GCNV NFS Datastore)',
-      drEnabled: true,
-      drConfig: {
-        engine: 'Zerto Continuous Data Protection (CDP)',
-        rpoMinutes: 1,
-        rtoMinutes: 15,
-        strategy: 'Warm Standby (Full Cluster)'
-      },
-      activeTemplate: 'gcve'
-    })
+    id: 'vmware-to-gcve',
+    title: 'VMware to GCVE',
+    subtitle: 've1-standard-72 + GCNV + HCX',
+    badge: 'Google Cloud',
+    providerBadge: 'Google Cloud'
   },
   {
-    id: 'carrier-interconnect',
-    title: 'Physical Carrier Interconnects',
-    subtitle: 'MSEE & DirectConnect + Meet-Me Cage',
-    tag: 'Physical Topology',
-    tagColor: 'bg-cyan-950 text-cyan-300 border-cyan-800',
-    apply: (prev) => ({
-      ...prev,
-      footprintScope: 'hybrid-multi',
-      connectivityCarrier: 'Direct Circuits with FastPath / Global Reach',
-      landingZonePattern: 'Azure Virtual WAN Hub-and-Spoke',
-      firewallMode: 'dual-layer',
-      firewallProvider: 'Palo Alto Networks VM-Series',
-      targetPlatform: 'avs-gen2',
-      targetNodeSku: 'AV64',
-      targetNodeCount: 4,
-      sddcMgmtCidr: '10.240.0.0/22',
-      activeTemplate: 'carrier-interconnect' as any
-    })
+    id: 'vmware-to-vmc',
+    title: 'VMware to VMC on AWS',
+    subtitle: 'i4i.metal + FSx ONTAP + TGW',
+    badge: 'AWS SDDC',
+    providerBadge: 'AWS'
   },
   {
-    id: 'transit-hub',
-    title: 'Transit Hub & Dynamic BGP',
-    subtitle: 'vWAN Hub + Route Server + TGW + Tier-0 ECMP',
-    tag: 'Hub-and-Spoke',
-    tagColor: 'bg-indigo-950 text-indigo-300 border-indigo-800',
-    apply: (prev) => ({
-      ...prev,
-      footprintScope: 'hybrid-multi',
-      connectivityCarrier: 'Direct Circuits with FastPath / Global Reach',
-      landingZonePattern: 'Azure Virtual WAN Hub-and-Spoke',
-      firewallMode: 'nva',
-      firewallProvider: 'Fortinet FortiGate-VM',
-      wafEnabled: true,
-      wafSolution: 'Azure WAF on Application Gateway',
-      targetPlatform: 'avs-gen2',
-      targetNodeSku: 'AV64',
-      targetNodeCount: 4,
-      sddcMgmtCidr: '10.240.0.0/22',
-      activeTemplate: 'transit-hub' as any
-    })
-  },
-  {
-    id: 'microseg-security',
-    title: 'Zero-Trust Microsegmentation',
-    subtitle: 'NSX DFW + Dual-Layer NVA + App Gateway WAF',
-    tag: 'Zero-Trust Security',
-    tagColor: 'bg-emerald-950 text-emerald-300 border-emerald-800',
-    apply: (prev) => ({
-      ...prev,
-      footprintScope: 'hybrid-multi',
-      firewallMode: 'dual-layer',
-      firewallProvider: 'Palo Alto Networks VM-Series',
-      dualLayerInspectionFlow: 'sequential',
-      wafEnabled: true,
-      wafSolution: 'Azure WAF on Application Gateway',
-      sourceHypervisorConfig: {
-        ...prev.sourceHypervisorConfig,
-        nsxEnabled: true,
-        nsxVersion: '4.2.x'
-      },
-      targetPlatform: 'avs-gen2',
-      targetNodeSku: 'AV64',
-      targetNodeCount: 4,
-      sddcMgmtCidr: '10.240.0.0/22',
-      activeTemplate: 'microseg-security' as any
-    })
-  },
-  {
-    id: 'storage-dr',
-    title: 'Decoupled Storage & DR Flows',
-    subtitle: 'ANF / FSx ONTAP + SRM + HCX RAV Zero-RPO',
-    tag: 'Decoupled Storage & DR',
-    tagColor: 'bg-purple-950 text-purple-300 border-purple-800',
-    apply: (prev) => ({
-      ...prev,
-      footprintScope: 'hybrid-multi',
-      decoupledStorageEnabled: true,
-      decoupledStorageTB: 150,
-      decoupledStorageProvider: 'Azure NetApp Files (ANF NFS Datastore)',
-      drEnabled: true,
-      drConfig: {
-        engine: 'VMware Site Recovery Manager (SRM) + vSphere Replication',
-        rpoMinutes: 0,
-        rtoMinutes: 15,
-        strategy: 'Warm Standby (Full Cluster)'
-      },
-      targetPlatform: 'avs-gen2',
-      targetNodeSku: 'AV64',
-      targetNodeCount: 4,
-      sddcMgmtCidr: '10.240.0.0/22',
-      activeTemplate: 'storage-dr' as any
-    })
+    id: 'custom-path',
+    title: 'Hybrid Extension',
+    subtitle: 'Datacenter Burst + L2 Network Stretch',
+    badge: 'Hybrid Mesh',
+    providerBadge: 'Hybrid'
   }
+];
+
+const WIZARD_STEPS = [
+  { step: 1, label: 'Objective', detail: 'Strategy & Scope' },
+  { step: 2, label: 'Source', detail: 'On-Prem Inventory' },
+  { step: 3, label: 'Landing Zone', detail: 'Cloud Foundation & VDI' },
+  { step: 4, label: 'Security & WAF', detail: 'NVA & Perimeter' },
+  { step: 5, label: 'Target & DR', detail: 'SDDC Sizing & Runbooks' }
 ];
 
 export const WizardStepTabs: React.FC<WizardStepTabsProps> = ({
   currentStep,
   onSelectStep,
   wizardState,
-  onApplyTemplate,
-  layoutMode,
-  onToggleLayoutMode,
-  isCidrValid,
-  isCompatibilityValid
+  onApplyTemplate
 }) => {
-  const steps = [
-    {
-      step: 1,
-      title: 'Select Objective',
-      subtitle:
-        wizardState.objective === 'migration-only'
-          ? 'Migration Only'
-          : wizardState.objective === 'extend-dc'
-          ? 'Extend DC Burst'
-          : wizardState.objective === 'setup-dr'
-          ? 'Setup DR Site'
-          : 'Migrate & Setup DR',
-      icon: Layers,
-      isComplete: Boolean(wizardState.objective)
-    },
-    {
-      step: 2,
-      title: 'Select Template',
-      subtitle:
-        wizardState.templateChoice === 'vmware-to-avs'
-          ? 'VMware to AVS'
-          : wizardState.templateChoice === 'vmware-to-nc2'
-          ? 'VMware to NC2'
-          : wizardState.templateChoice === 'nutanix-to-nc2'
-          ? 'Nutanix to NC2'
-          : wizardState.templateChoice === 'vmware-to-gcve'
-          ? 'VMware to GCVE'
-          : wizardState.templateChoice === 'vmware-to-vmc'
-          ? 'VMware to VMC'
-          : 'Custom Multi-Cloud',
-      icon: Cloud,
-      isComplete: Boolean(wizardState.templateChoice)
-    },
-    {
-      step: 3,
-      title: 'Infrastructure Components',
-      subtitle: `${[
-        wizardState.interconnectEnabled && 'Interconnect',
-        wizardState.securityNvaEnabled && 'Security',
-        wizardState.cloudNativeEnabled && 'Cloud-Native',
-        wizardState.vdiEnabled && 'VDI',
-        wizardState.drEnabled && 'DR'
-      ].filter(Boolean).length} Active Tiers`,
-      icon: Network,
-      isComplete: true
-    },
-    {
-      step: 4,
-      title: 'Generate Blueprint',
-      subtitle: '3D Isometric Render & Exports',
-      icon: Sparkles,
-      isComplete: isCidrValid && isCompatibilityValid
-    }
-  ];
-
   return (
     <div className="space-y-4">
-      {/* 1-Click Industry Templates Bar */}
-      <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-lg space-y-2.5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2">
+      {/* Quick-Start Architectural Templates Bar */}
+      <div className="p-3 sm:p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-2.5 shadow-lg">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Zap className="w-4 h-4 text-amber-400" />
-            <span className="text-xs font-bold text-white uppercase tracking-wider">
-              1-Click Enterprise Architecture Templates
-            </span>
-            <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">
-              Instant pre-configured matrix baselines
-            </span>
+            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="text-xs font-bold text-white tracking-tight">Quick-Start Cloud Architecture Templates</span>
           </div>
-
-          {/* View Mode Switcher */}
-          <div className="flex items-center gap-1.5 self-end sm:self-auto bg-slate-950 p-1 rounded-xl border border-slate-800">
-            <button
-              type="button"
-              onClick={() => onToggleLayoutMode('form-only')}
-              title="Interactive 4-Step Architecture Configuration Wizard"
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer ${
-                layoutMode !== 'preview'
-                  ? 'bg-cyan-500 text-slate-950 shadow-sm font-bold'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <FileText className="w-3.5 h-3.5" />
-              <span>4-Step Wizard</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => onToggleLayoutMode('preview')}
-              title="Full-Resolution Static 4K Vector Blueprint Preview"
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer ${
-                layoutMode === 'preview'
-                  ? 'bg-cyan-500 text-slate-950 shadow-sm font-bold'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Maximize2 className="w-3.5 h-3.5" />
-              <span>4K Blueprint View</span>
-            </button>
-          </div>
+          <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">
+            Loads preconfigured validated starting points · Fully customizable in steps
+          </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-          {INDUSTRY_PRESETS.map((preset) => (
-            <button
-              key={preset.id}
-              type="button"
-              onClick={() => onApplyTemplate(preset)}
-              className="p-2.5 rounded-xl bg-slate-950/70 hover:bg-slate-950 border border-slate-800 hover:border-cyan-500/50 transition-all text-left group cursor-pointer relative overflow-hidden"
-            >
-              <div className="flex items-center justify-between gap-1 mb-1">
-                <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${preset.tagColor}`}>
-                  {preset.tag}
-                </span>
-                <Sparkles className="w-3 h-3 text-slate-600 group-hover:text-cyan-400 transition" />
-              </div>
-              <div className="text-xs font-bold text-white group-hover:text-cyan-300 transition line-clamp-1">
-                {preset.title}
-              </div>
-              <div className="text-[11px] text-slate-400 line-clamp-1 mt-0.5 font-mono">
-                {preset.subtitle}
-              </div>
-            </button>
-          ))}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+          {TEMPLATE_CARDS.map((tmpl) => {
+            const isSelected = wizardState.templateChoice === tmpl.id;
+            return (
+              <button
+                key={tmpl.id}
+                type="button"
+                onClick={() => onApplyTemplate(tmpl.id)}
+                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer relative flex flex-col justify-between ${
+                  isSelected
+                    ? 'bg-gradient-to-br from-cyan-950/80 to-slate-900 border-cyan-500 shadow-md shadow-cyan-500/20 ring-1 ring-cyan-500/40'
+                    : 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900/90'
+                }`}
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-mono font-semibold px-1.5 py-0.2 rounded bg-slate-900 text-cyan-300 border border-slate-700">
+                      {tmpl.providerBadge}
+                    </span>
+                    {isSelected && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                    )}
+                  </div>
+                  <div className="font-bold text-xs text-white leading-tight truncate">
+                    {tmpl.title}
+                  </div>
+                  <div className="text-[10px] text-slate-400 line-clamp-1 leading-snug">
+                    {tmpl.subtitle}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* 4-Step Navigation Tabs with Badges */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
-        {steps.map((s) => {
-          const Icon = s.icon;
-          const isActive = currentStep === s.step && layoutMode !== 'preview';
-          const isPassed = currentStep > s.step;
+      {/* 5-Step Process Indicator Bar */}
+      <div className="p-2 sm:p-2.5 rounded-2xl bg-slate-900 border border-slate-800">
+        <div className="grid grid-cols-5 gap-1.5 text-xs">
+          {WIZARD_STEPS.map((s) => {
+            const isActive = currentStep === s.step;
+            const isCompleted = currentStep > s.step;
 
-          return (
-            <button
-              key={s.step}
-              type="button"
-              onClick={() => {
-                onToggleLayoutMode('form-only');
-                onSelectStep(s.step);
-              }}
-              className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between ${
-                isActive
-                  ? 'bg-slate-900 border-cyan-500 shadow-lg shadow-cyan-500/10 ring-1 ring-cyan-500/50'
-                  : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-900/90'
-              }`}
-            >
-              {/* Active Step Indicator Pill */}
-              {isActive && (
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-400 via-indigo-500 to-cyan-400" />
-              )}
-
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <div className="flex items-center gap-2">
-                  <div
-                    className={`p-1.5 rounded-lg border ${
-                      isActive
-                        ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-400'
-                        : isPassed
-                        ? 'bg-emerald-950/50 border-emerald-700/50 text-emerald-400'
-                        : 'bg-slate-950 border-slate-800 text-slate-400'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-mono uppercase tracking-wider block text-slate-400 font-semibold">
-                      Step 0{s.step}
-                    </span>
-                    <h3 className={`text-xs font-bold leading-tight ${isActive ? 'text-white' : 'text-slate-300'}`}>
-                      {s.title}
-                    </h3>
-                  </div>
-                </div>
-
-                {/* Status Badge */}
-                <span
-                  className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border shrink-0 ${
-                    s.isComplete
-                      ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800'
-                      : 'bg-amber-950/80 text-amber-300 border-amber-800'
+            return (
+              <button
+                key={s.step}
+                type="button"
+                onClick={() => onSelectStep(s.step)}
+                className={`p-2 rounded-xl text-left transition-all flex items-center gap-2 cursor-pointer ${
+                  isActive
+                    ? 'bg-cyan-950/60 border border-cyan-500 text-white shadow-sm'
+                    : isCompleted
+                    ? 'bg-slate-950/60 border border-slate-800 text-slate-300 hover:border-slate-700'
+                    : 'bg-slate-950/30 border border-transparent text-slate-500 hover:text-slate-400'
+                }`}
+              >
+                <div
+                  className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-mono font-bold shrink-0 ${
+                    isActive
+                      ? 'bg-cyan-500 text-slate-950'
+                      : isCompleted
+                      ? 'bg-emerald-950 border border-emerald-500/50 text-emerald-400'
+                      : 'bg-slate-800 text-slate-500'
                   }`}
                 >
-                  {s.isComplete ? 'READY' : 'CONFIG'}
-                </span>
-              </div>
+                  {isCompleted ? '✓' : `0${s.step}`}
+                </div>
 
-              <div className="text-[11px] text-slate-400 font-mono line-clamp-1 border-t border-slate-800/80 pt-1.5">
-                {s.subtitle}
-              </div>
-            </button>
-          );
-        })}
+                <div className="hidden md:block min-w-0">
+                  <div className={`text-xs font-bold truncate ${isActive ? 'text-white' : 'text-slate-300'}`}>
+                    {s.label}
+                  </div>
+                  <div className="text-[10px] text-slate-500 truncate">{s.detail}</div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

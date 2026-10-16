@@ -48,6 +48,8 @@ export interface WizardState {
   // 4-Step Progressive Architecture Flow
   objective: ArchitectureObjective;
   templateChoice: ArchitectureTemplateChoice;
+  migrationStrategy?: 'rehost' | 'replatform' | 'modernize' | 'mixed';
+  workloadCriticality?: 'low' | 'medium' | 'high' | 'mission-critical';
 
   // Independent Infrastructure Sections
   interconnectEnabled: boolean;

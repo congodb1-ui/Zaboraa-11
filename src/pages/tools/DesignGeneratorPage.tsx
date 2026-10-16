@@ -98,16 +98,22 @@ import {
 } from '../../data/cloudCompatibilityCatalogue';
 import {
   WizardState,
+  ArchitectureTemplateChoice,
   createDefaultWizardState,
   mapLegacyToWizard,
   mapWizardToLegacy,
   buildActivePromptString
 } from '../../types/wizardStateAdapter';
-import { WizardStepTabs, IndustryTemplatePreset } from '../../components/wizard/WizardStepTabs';
+import { WizardStepTabs } from '../../components/wizard/WizardStepTabs';
 import { Step1SelectObjective } from '../../components/wizard/Step1SelectObjective';
-import { Step2SelectTemplate } from '../../components/wizard/Step2SelectTemplate';
-import { Step3InfrastructureComponents } from '../../components/wizard/Step3InfrastructureComponents';
-import { Step4GenerateBlueprint } from '../../components/wizard/Step4GenerateBlueprint';
+import { Step2SourceInfrastructure } from '../../components/wizard/Step2SourceInfrastructure';
+import { Step3LandingZoneAndVDI } from '../../components/wizard/Step3LandingZoneAndVDI';
+import { Step4SecurityAndWAF } from '../../components/wizard/Step4SecurityAndWAF';
+import { Step5TargetAndDR } from '../../components/wizard/Step5TargetAndDR';
+import {
+  CANONICAL_TEMPLATES,
+  sanitizeWizardStateForTemplate
+} from '../../utils/architectureCompatibilityRules';
 
 interface VlanSubsegment {
   vlanId: number;
@@ -1301,10 +1307,16 @@ export const DesignGeneratorPage: React.FC = () => {
     });
   };
 
-  const handleApplyIndustryTemplate = (preset: IndustryTemplatePreset) => {
-    handleWizardStateChange((prev) => preset.apply(prev));
-    setSaveSuccessNotice(`Applied "${preset.title}" architecture baseline.`);
-    setTimeout(() => setSaveSuccessNotice(null), 3500);
+  const handleApplyIndustryTemplate = (templateChoice: ArchitectureTemplateChoice) => {
+    const { state: updated, clearedNotices } = sanitizeWizardStateForTemplate(wizardState, templateChoice);
+    handleWizardStateChange(() => updated);
+    const tmplName = CANONICAL_TEMPLATES.find(t => t.id === templateChoice)?.title || templateChoice;
+    if (clearedNotices.length > 0) {
+      setSaveSuccessNotice(`Applied "${tmplName}" template. Note: ${clearedNotices[0]}`);
+    } else {
+      setSaveSuccessNotice(`Applied "${tmplName}" architecture baseline.`);
+    }
+    setTimeout(() => setSaveSuccessNotice(null), 4500);
   };
 
   // Update Node SKU options when cloud platform changes
@@ -2109,12 +2121,9 @@ export const DesignGeneratorPage: React.FC = () => {
       return;
     }
 
-    setCurrentStep(4);
+    setCurrentStep(5);
     setIsGenerating3D(true);
     setShowPreFlightModal(false);
-    if (typeof window !== 'undefined') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
     setGenerationProgress(10);
     setGenerationStep('Synthesizing verified multi-tier infrastructure parameters...');
 
@@ -2206,10 +2215,8 @@ export const DesignGeneratorPage: React.FC = () => {
 
       setTimeout(() => {
         setIsGenerating3D(false);
-        if (typeof window !== 'undefined') {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-      }, 500);
+        blueprintSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 400);
     } catch (err: any) {
       // In case of network error, gracefully fallback
       const fallbackUrl = '/assets/images/cloud_3d_blueprint_enterprise_1792147431615.jpg';
@@ -2248,10 +2255,8 @@ export const DesignGeneratorPage: React.FC = () => {
 
       setTimeout(() => {
         setIsGenerating3D(false);
-        if (typeof window !== 'undefined') {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-      }, 500);
+        blueprintSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 400);
     } finally {
       clearTimeout(timer1);
       clearTimeout(timer2);
@@ -2395,7 +2400,7 @@ export const DesignGeneratorPage: React.FC = () => {
   ]);
 
   return (
-    <div className="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-10">
+    <div className="py-6 sm:py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-5">
       {/* Page Header */}
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
@@ -2579,23 +2584,20 @@ export const DesignGeneratorPage: React.FC = () => {
         </div>
       )}
 
-      {/* 4-Step Enterprise Wizard Navigation Tabs with Industry Presets */}
+      {/* 5-Step Enterprise Architecture Wizard Navigation Tabs */}
       <WizardStepTabs
         currentStep={currentStep}
         onSelectStep={setCurrentStep}
         wizardState={wizardState}
         onApplyTemplate={handleApplyIndustryTemplate}
-        layoutMode={layoutMode}
-        onToggleLayoutMode={setLayoutMode}
         isCidrValid={sddcCidrValid}
-        isCompatibilityValid={isCrossTierCompatible}
       />
 
-      {/* 4-Step Architecture Wizard Workflow Container */}
-      <div className="space-y-6">
+      {/* 5-Step Architecture Wizard Workflow Container */}
+      <div className="space-y-4">
         {layoutMode === 'preview' ? (
-          <div className="p-6 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+          <div className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
               <div>
                 <span className="text-xs font-mono text-cyan-400 uppercase font-semibold">
                   Static 4K Architecture Vector Blueprint Preview
@@ -2619,20 +2621,20 @@ export const DesignGeneratorPage: React.FC = () => {
                   onClick={() => setLayoutMode('form-only')}
                   className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold cursor-pointer transition"
                 >
-                  Return to 4-Step Wizard
+                  Return to 5-Step Wizard
                 </button>
               </div>
             </div>
 
             {/* 3-Panel Vector Blueprint Visual Cards */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
               {/* Panel 1 */}
-              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
-                <div className="text-xs font-bold text-cyan-400 uppercase font-mono tracking-wide border-b border-slate-800 pb-2">
+              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2.5">
+                <div className="text-xs font-bold text-cyan-400 uppercase font-mono tracking-wide border-b border-slate-800 pb-1.5">
                   {vectorSpec.panel1Header}
                 </div>
                 {[vectorSpec.panel1Box1, vectorSpec.panel1Box2, vectorSpec.panel1Box3].map((box, bIdx) => (
-                  <div key={bIdx} className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1.5">
+                  <div key={bIdx} className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 space-y-1">
                     <div className="text-xs font-bold text-white">{box.title}</div>
                     <ul className="space-y-0.5 text-[11px] text-slate-300 font-mono">
                       {box.bullets.map((b, idx) => (
@@ -2644,12 +2646,12 @@ export const DesignGeneratorPage: React.FC = () => {
               </div>
 
               {/* Panel 2 */}
-              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
-                <div className="text-xs font-bold text-purple-400 uppercase font-mono tracking-wide border-b border-slate-800 pb-2">
+              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2.5">
+                <div className="text-xs font-bold text-purple-400 uppercase font-mono tracking-wide border-b border-slate-800 pb-1.5">
                   {vectorSpec.panel2Header}
                 </div>
                 {[vectorSpec.panel2Box1, vectorSpec.panel2Box2, vectorSpec.panel2Box3].map((box, bIdx) => (
-                  <div key={bIdx} className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1.5">
+                  <div key={bIdx} className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 space-y-1">
                     <div className="text-xs font-bold text-white">{box.title}</div>
                     <ul className="space-y-0.5 text-[11px] text-slate-300 font-mono">
                       {box.bullets.map((b, idx) => (
@@ -2661,12 +2663,12 @@ export const DesignGeneratorPage: React.FC = () => {
               </div>
 
               {/* Panel 3 */}
-              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
-                <div className="text-xs font-bold text-emerald-400 uppercase font-mono tracking-wide border-b border-slate-800 pb-2">
+              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2.5">
+                <div className="text-xs font-bold text-emerald-400 uppercase font-mono tracking-wide border-b border-slate-800 pb-1.5">
                   {vectorSpec.panel3Header}
                 </div>
                 {[vectorSpec.panel3Box1, vectorSpec.panel3Box2, vectorSpec.panel3Box3].map((box, bIdx) => (
-                  <div key={bIdx} className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1.5">
+                  <div key={bIdx} className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 space-y-1">
                     <div className="text-xs font-bold text-white">{box.title}</div>
                     <ul className="space-y-0.5 text-[11px] text-slate-300 font-mono">
                       {box.bullets.map((b, idx) => (
@@ -2689,7 +2691,7 @@ export const DesignGeneratorPage: React.FC = () => {
             )}
 
             {currentStep === 2 && (
-              <Step2SelectTemplate
+              <Step2SourceInfrastructure
                 wizardState={wizardState}
                 onChange={handleWizardStateChange}
                 onNext={() => setCurrentStep(3)}
@@ -2698,7 +2700,7 @@ export const DesignGeneratorPage: React.FC = () => {
             )}
 
             {currentStep === 3 && (
-              <Step3InfrastructureComponents
+              <Step3LandingZoneAndVDI
                 wizardState={wizardState}
                 onChange={handleWizardStateChange}
                 onNext={() => setCurrentStep(4)}
@@ -2707,10 +2709,19 @@ export const DesignGeneratorPage: React.FC = () => {
             )}
 
             {currentStep === 4 && (
-              <Step4GenerateBlueprint
+              <Step4SecurityAndWAF
                 wizardState={wizardState}
                 onChange={handleWizardStateChange}
+                onNext={() => setCurrentStep(5)}
                 onPrev={() => setCurrentStep(3)}
+              />
+            )}
+
+            {currentStep === 5 && (
+              <Step5TargetAndDR
+                wizardState={wizardState}
+                onChange={handleWizardStateChange}
+                onPrev={() => setCurrentStep(4)}
                 onGenerateAI={handleGenerateAIBlueprint}
                 isGeneratingAI={isGenerating3D}
                 generationStep={generationStep}
@@ -2729,7 +2740,7 @@ export const DesignGeneratorPage: React.FC = () => {
                 }}
                 hasGeneratedBlueprint={Boolean(aiBlueprintResult)}
                 onScrollToBlueprint={() => {
-                  blueprintSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+                  blueprintSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }}
               />
             )}

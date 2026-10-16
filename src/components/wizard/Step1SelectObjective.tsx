@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ArrowRight,
   Send,
@@ -6,12 +6,13 @@ import {
   ShieldCheck,
   Zap,
   CheckCircle2,
-  User,
-  Calendar,
   Globe2,
-  HardDrive
+  ChevronDown,
+  ChevronUp,
+  AlertCircle
 } from 'lucide-react';
 import { WizardState, ArchitectureObjective } from '../../types/wizardStateAdapter';
+import { validateWizardStep } from '../../utils/architectureCompatibilityRules';
 
 interface Step1SelectObjectiveProps {
   wizardState: WizardState;
@@ -73,41 +74,69 @@ export const Step1SelectObjective: React.FC<Step1SelectObjectiveProps> = ({
   onChange,
   onNext
 }) => {
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
+
   const selectedObjective = wizardState.objective || 'migrate-and-dr';
 
   const handleSelectObjective = (obj: ArchitectureObjective) => {
+    setValidationError(null);
     onChange((prev) => {
-      // Intelligently configure DR and Interconnect based on objective
       const isDrNeeded = obj === 'setup-dr' || obj === 'migrate-and-dr';
       return {
         ...prev,
         objective: obj,
         drEnabled: isDrNeeded,
         interconnectEnabled: true,
-        footprintScope: obj === 'extend-dc' ? 'private-sddc' : 'hybrid-multi'
+        footprintScope: obj === 'extend-dc' ? 'private-sddc' : prev.footprintScope || 'hybrid-multi'
       };
     });
   };
 
+  const handleScopeChange = (scope: 'private-sddc' | 'native-cloud' | 'hybrid-multi') => {
+    setValidationError(null);
+    onChange((prev) => ({
+      ...prev,
+      footprintScope: scope
+    }));
+  };
+
+  const handleContinue = () => {
+    const check = validateWizardStep(1, wizardState);
+    if (!check.isValid) {
+      setValidationError(check.errors[0] || 'Please complete required fields.');
+      return;
+    }
+    setValidationError(null);
+    onNext();
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Step Header */}
-      <div className="p-5 sm:p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-2">
+      <div className="p-4 sm:p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-1.5">
         <div className="flex items-center gap-2 text-cyan-400 text-xs font-mono font-semibold tracking-wider uppercase">
-          <span>Step 01 / 04</span>
+          <span>Step 01 / 05</span>
           <span>·</span>
-          <span>Architecture Scope</span>
+          <span>Architectural Objective</span>
         </div>
         <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-          Select Your Architectural Objective
+          What is the primary architecture goal?
         </h2>
-        <p className="text-sm text-slate-400 max-w-3xl leading-relaxed">
-          Define the primary business outcome for this cloud architecture design. Your selection optimizes target sizing, connectivity recommendations, and resilience defaults.
+        <p className="text-xs sm:text-sm text-slate-400 max-w-3xl leading-relaxed">
+          Select the strategic outcome for your enterprise cloud architecture. This drives sizing recommendations, interconnect configurations, and resiliency requirements.
         </p>
       </div>
 
-      {/* Objective Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {validationError && (
+        <div className="p-3 rounded-xl bg-rose-950/70 border border-rose-800 text-xs text-rose-300 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{validationError}</span>
+        </div>
+      )}
+
+      {/* Primary Objective Options Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {OBJECTIVE_OPTIONS.map((opt) => {
           const isSelected = selectedObjective === opt.id;
           const Icon = opt.icon;
@@ -116,59 +145,52 @@ export const Step1SelectObjective: React.FC<Step1SelectObjectiveProps> = ({
             <div
               key={opt.id}
               onClick={() => handleSelectObjective(opt.id)}
-              className={`p-5 rounded-2xl border text-left transition-all cursor-pointer relative flex flex-col justify-between group ${
+              className={`p-4 rounded-xl border text-left transition-all cursor-pointer relative flex flex-col justify-between group ${
                 isSelected
-                  ? 'bg-gradient-to-br from-slate-900 via-cyan-950/30 to-slate-900 border-cyan-500 shadow-xl shadow-cyan-500/10 ring-1 ring-cyan-500/50'
+                  ? 'bg-gradient-to-br from-slate-900 via-cyan-950/40 to-slate-900 border-cyan-500 shadow-lg shadow-cyan-500/10 ring-1 ring-cyan-500/40'
                   : 'bg-slate-900/70 border-slate-800 hover:border-slate-700 hover:bg-slate-900'
               }`}
             >
-              <div className="space-y-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
+              <div className="space-y-2.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
                     <div
-                      className={`p-2.5 rounded-xl border transition ${
+                      className={`p-2 rounded-lg border transition ${
                         isSelected
                           ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300'
                           : 'bg-slate-950 border-slate-800 text-slate-400 group-hover:text-slate-200'
                       }`}
                     >
-                      <Icon className="w-5 h-5" />
+                      <Icon className="w-4 h-4" />
                     </div>
                     <div>
-                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-400/90 block">
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-400 block">
                         {opt.badge}
                       </span>
-                      <h3 className="text-base font-bold text-white tracking-tight">{opt.title}</h3>
+                      <h3 className="text-sm font-bold text-white tracking-tight">
+                        {opt.title}
+                      </h3>
                     </div>
                   </div>
 
-                  <div
-                    className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition ${
-                      isSelected
-                        ? 'bg-cyan-500 border-cyan-400 text-slate-950'
-                        : 'border-slate-700 bg-slate-950'
-                    }`}
-                  >
-                    {isSelected && <CheckCircle2 className="w-4 h-4 fill-slate-950 text-cyan-400" />}
-                  </div>
+                  {isSelected && (
+                    <div className="p-1 rounded-full bg-cyan-500/20 text-cyan-400">
+                      <CheckCircle2 className="w-4 h-4" />
+                    </div>
+                  )}
                 </div>
 
-                <p className="text-xs text-slate-300 leading-relaxed">{opt.description}</p>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  {opt.description}
+                </p>
 
-                <div className="pt-2 border-t border-slate-800/80">
-                  <div className="text-[11px] text-slate-400 font-mono mb-2">
-                    <span className="text-slate-500 font-semibold">Typical use:</span> {opt.recommendedFor}
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {opt.highlights.map((h, idx) => (
-                      <span
-                        key={idx}
-                        className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-slate-300"
-                      >
-                        ✓ {h}
-                      </span>
-                    ))}
-                  </div>
+                <div className="space-y-1 pt-1 border-t border-slate-800/80">
+                  {opt.highlights.map((h, i) => (
+                    <div key={i} className="text-[11px] text-slate-400 flex items-center gap-1.5">
+                      <span className="w-1 h-1 rounded-full bg-cyan-400 shrink-0" />
+                      <span>{h}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -176,69 +198,95 @@ export const Step1SelectObjective: React.FC<Step1SelectObjectiveProps> = ({
         })}
       </div>
 
-      {/* Project Metadata Section */}
-      <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-          <Globe2 className="w-4 h-4 text-cyan-400" />
-          <h3 className="text-sm font-bold text-white">Project & Client Information</h3>
-          <span className="text-[11px] text-slate-400 font-mono">Appears on generated blueprint & BOM</span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-          <div className="space-y-1.5">
-            <label className="text-slate-300 font-semibold flex items-center gap-1.5">
-              <Building2 className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Customer / Organization</span>
-            </label>
-            <input
-              type="text"
-              value={wizardState.customerName}
-              onChange={(e) => onChange((prev) => ({ ...prev, customerName: e.target.value }))}
-              placeholder="e.g. Acme Corporation"
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-xl text-slate-100 text-xs focus:outline-none transition"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-slate-300 font-semibold flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Lead Cloud Architect</span>
-            </label>
-            <input
-              type="text"
-              value={wizardState.architectName}
-              onChange={(e) => onChange((prev) => ({ ...prev, architectName: e.target.value }))}
-              placeholder="e.g. Wasim Sayyed"
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-xl text-slate-100 text-xs focus:outline-none transition"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-slate-300 font-semibold flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Architecture Date</span>
-            </label>
-            <input
-              type="date"
-              value={wizardState.projectDate}
-              onChange={(e) => onChange((prev) => ({ ...prev, projectDate: e.target.value }))}
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-xl text-slate-100 text-xs focus:outline-none transition font-mono"
-            />
-          </div>
+      {/* Deployment Scope (Required) */}
+      <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
+        <label className="text-xs font-bold text-slate-200 flex items-center justify-between">
+          <span>Deployment Scope <span className="text-cyan-400 font-mono">*</span></span>
+          <span className="text-[10px] font-mono text-slate-400">Required</span>
+        </label>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+          {[
+            { id: 'hybrid-multi', label: 'Hybrid Cloud', desc: 'On-premises datacenter connected to cloud SDDC' },
+            { id: 'native-cloud', label: 'Multi-Cloud Mesh', desc: 'Spans multiple cloud providers and regions' },
+            { id: 'private-sddc', label: 'Single Cloud', desc: 'Dedicated isolated bare-metal cloud cluster' }
+          ].map((scope) => {
+            const isSelected = wizardState.footprintScope === scope.id;
+            return (
+              <button
+                key={scope.id}
+                type="button"
+                onClick={() => handleScopeChange(scope.id as any)}
+                className={`p-3 rounded-lg border text-left transition cursor-pointer ${
+                  isSelected
+                    ? 'bg-cyan-950/40 border-cyan-500 text-white ring-1 ring-cyan-500/40'
+                    : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                }`}
+              >
+                <div className="font-bold text-xs text-white">{scope.label}</div>
+                <div className="text-[10px] text-slate-400 mt-0.5">{scope.desc}</div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Navigation Footer */}
-      <div className="flex items-center justify-between pt-2">
-        <div className="text-xs text-slate-400 font-mono">
-          Selected Objective: <span className="text-cyan-400 font-bold">{OBJECTIVE_OPTIONS.find(o => o.id === selectedObjective)?.title}</span>
-        </div>
+      {/* Collapsed Advanced Constraints & Strategy Accordion */}
+      <div className="rounded-xl border border-slate-800 overflow-hidden bg-slate-900/60">
         <button
           type="button"
-          onClick={onNext}
-          className="px-6 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-cyan-500/20 transition-all hover:scale-[1.02] cursor-pointer"
+          onClick={() => setShowAdvanced(!showAdvanced)}
+          className="w-full p-3 flex items-center justify-between text-xs font-semibold text-slate-300 hover:bg-slate-800/50 transition cursor-pointer"
         >
-          <span>Continue to Select Template</span>
+          <span className="flex items-center gap-2">
+            <span>Advanced Migration Strategy & Constraints</span>
+            <span className="text-[10px] font-mono text-slate-500 font-normal">(Optional)</span>
+          </span>
+          {showAdvanced ? <ChevronUp className="w-4 h-4 text-cyan-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+        </button>
+
+        {showAdvanced && (
+          <div className="p-4 border-t border-slate-800 bg-slate-950/60 space-y-3 text-xs animate-in fade-in duration-150">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-slate-300">Migration Methodology</label>
+                <select
+                  value={wizardState.migrationStrategy || 'rehost'}
+                  onChange={(e) => onChange((p) => ({ ...p, migrationStrategy: e.target.value as any }))}
+                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-xs focus:outline-none focus:border-cyan-400"
+                >
+                  <option value="rehost">Rehost (Lift & Shift VM Mobility)</option>
+                  <option value="replatform">Replatform (Managed DBs & Storage Attachments)</option>
+                  <option value="modernize">Modernize (Cloud-Native & Container Hybrid)</option>
+                  <option value="mixed">Mixed Enterprise Wave Strategy</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-slate-300">Workload Criticality Tier</label>
+                <select
+                  value={wizardState.workloadCriticality || 'mission-critical'}
+                  onChange={(e) => onChange((p) => ({ ...p, workloadCriticality: e.target.value as any }))}
+                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-xs focus:outline-none focus:border-cyan-400"
+                >
+                  <option value="mission-critical">Tier 1: Mission-Critical (Near-Zero Downtime)</option>
+                  <option value="high">Tier 2: Business Core (Scheduled Cutover)</option>
+                  <option value="medium">Tier 3: Standard Enterprise Application</option>
+                  <option value="low">Tier 4: Dev / Test / Elastic Sandboxes</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Navigation Footer */}
+      <div className="flex items-center justify-end pt-2">
+        <button
+          type="button"
+          onClick={handleContinue}
+          className="px-6 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-cyan-500/20 transition-all hover:scale-[1.01] cursor-pointer"
+        >
+          <span>Continue to Source Infrastructure</span>
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>

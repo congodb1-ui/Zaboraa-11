@@ -279,25 +279,14 @@ export const AdminLoginModal: React.FC = () => {
         ) : (
           /* Standard Administrator Login Form */
           <form onSubmit={handleAdminSignIn} className="space-y-4">
-            <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 text-[11px] text-slate-300 space-y-1.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5 font-semibold text-slate-200">
-                  <ShieldAlert className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Enterprise Admin Credentials</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('admin@zaboraa.com');
-                    setPassword('Zaboraa@123!');
-                  }}
-                  className="px-2 py-0.5 rounded bg-cyan-950 hover:bg-cyan-900 border border-cyan-500/40 text-[10px] text-cyan-300 font-mono cursor-pointer transition"
-                >
-                  Autofill Default
-                </button>
+            {/* Enterprise Security Notice - No hardcoded credentials */}
+            <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 text-[11px] text-slate-300 space-y-1">
+              <div className="flex items-center gap-1.5 font-semibold text-slate-200">
+                <ShieldAlert className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                <span>Enterprise Administrator Authentication</span>
               </div>
-              <p className="text-slate-400">
-                Default: <span className="font-mono text-cyan-300">admin@zaboraa.com</span> / <span className="font-mono text-cyan-300">Zaboraa@123!</span>
+              <p className="text-slate-400 leading-relaxed text-[10px]">
+                Access requires a verified Supabase account with authoritative <code className="text-cyan-300 font-mono">admin</code> role authorization in the database.
               </p>
             </div>
 
