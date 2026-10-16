@@ -58,7 +58,11 @@ const standardNode: ClusterNodeClass = {
   rawStoragePerHostTB: 19.2
 };
 
-const cap1 = calculateClusterCapacity(standardNode);
+const cap1 = calculateClusterCapacity(standardNode, {
+  ...DEFAULT_ENGINEERING_ASSUMPTIONS,
+  ariaOperationsIncluded: false,
+  ariaAutomationIncluded: false
+});
 assert(cap1.physicalCores === 512, 'Calculates exact physical cores (8 hosts * 2 sockets * 32 cores = 512)');
 assert(cap1.logicalProcessors === 1024, 'Calculates logical threads separately (512 * 2 = 1024)');
 assert(cap1.totalRamGB === 6144, 'Calculates gross installed RAM (8 * 768 = 6144 GB)');

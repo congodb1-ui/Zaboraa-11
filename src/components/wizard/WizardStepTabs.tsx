@@ -314,30 +314,54 @@ export const WizardStepTabs: React.FC<WizardStepTabsProps> = ({
   const steps = [
     {
       step: 1,
-      title: 'Scope & Source',
-      subtitle: `${wizardState.sourcePlatform.toUpperCase()} · ${wizardState.clusters.reduce((acc, c) => acc + c.hostCount, 0)} Hosts`,
+      title: 'Select Objective',
+      subtitle:
+        wizardState.objective === 'migration-only'
+          ? 'Migration Only'
+          : wizardState.objective === 'extend-dc'
+          ? 'Extend DC Burst'
+          : wizardState.objective === 'setup-dr'
+          ? 'Setup DR Site'
+          : 'Migrate & Setup DR',
       icon: Layers,
-      isComplete: wizardState.customerName.trim().length > 0 && wizardState.clusters.length > 0
+      isComplete: Boolean(wizardState.objective)
     },
     {
       step: 2,
-      title: 'Transit & Routing',
-      subtitle: `${wizardState.landingZonePattern.split(' ')[0]} · ${wizardState.connectivityCarrier.split(' ')[0]}`,
-      icon: Network,
-      isComplete: wizardState.selectedPublicProviders.length > 0
+      title: 'Select Template',
+      subtitle:
+        wizardState.templateChoice === 'vmware-to-avs'
+          ? 'VMware to AVS'
+          : wizardState.templateChoice === 'vmware-to-nc2'
+          ? 'VMware to NC2'
+          : wizardState.templateChoice === 'nutanix-to-nc2'
+          ? 'Nutanix to NC2'
+          : wizardState.templateChoice === 'vmware-to-gcve'
+          ? 'VMware to GCVE'
+          : wizardState.templateChoice === 'vmware-to-vmc'
+          ? 'VMware to VMC'
+          : 'Custom Multi-Cloud',
+      icon: Cloud,
+      isComplete: Boolean(wizardState.templateChoice)
     },
     {
       step: 3,
-      title: 'Security & WAF',
-      subtitle: `${wizardState.firewallMode.toUpperCase()} · ${wizardState.firewallProvider.split(' ')[0]}`,
-      icon: Shield,
-      isComplete: Boolean(wizardState.firewallMode && wizardState.firewallProvider)
+      title: 'Infrastructure Components',
+      subtitle: `${[
+        wizardState.interconnectEnabled && 'Interconnect',
+        wizardState.securityNvaEnabled && 'Security',
+        wizardState.cloudNativeEnabled && 'Cloud-Native',
+        wizardState.vdiEnabled && 'VDI',
+        wizardState.drEnabled && 'DR'
+      ].filter(Boolean).length} Active Tiers`,
+      icon: Network,
+      isComplete: true
     },
     {
       step: 4,
-      title: 'Target SDDC & DR',
-      subtitle: `${wizardState.targetPlatform.toUpperCase()} (${wizardState.targetNodeCount}x ${wizardState.targetNodeSku})`,
-      icon: Cloud,
+      title: 'Generate Blueprint',
+      subtitle: '3D Isometric Render & Exports',
+      icon: Sparkles,
       isComplete: isCidrValid && isCompatibilityValid
     }
   ];

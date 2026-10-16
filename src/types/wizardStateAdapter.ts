@@ -30,7 +30,65 @@ export interface WizardClusterSpec {
   storageTB: number;
 }
 
+export type ArchitectureObjective =
+  | 'migration-only'
+  | 'extend-dc'
+  | 'setup-dr'
+  | 'migrate-and-dr';
+
+export type ArchitectureTemplateChoice =
+  | 'vmware-to-avs'
+  | 'vmware-to-nc2'
+  | 'nutanix-to-nc2'
+  | 'vmware-to-gcve'
+  | 'vmware-to-vmc'
+  | 'custom-path';
+
 export interface WizardState {
+  // 4-Step Progressive Architecture Flow
+  objective: ArchitectureObjective;
+  templateChoice: ArchitectureTemplateChoice;
+
+  // Independent Infrastructure Sections
+  interconnectEnabled: boolean;
+  interconnectConfig: {
+    type: string;
+    bandwidthGbps: number;
+    redundancy: 'dual' | 'single';
+    layer2Extension: boolean;
+    fastPathEnabled: boolean;
+  };
+
+  securityNvaEnabled: boolean;
+  securityNvaConfig: {
+    firewall: string;
+    microsegmentation: boolean;
+    wafEnabled: boolean;
+    wafSolution: string;
+    inspectionMode: 'centralized-nva' | 'distributed' | 'dual-layer';
+  };
+
+  cloudNativeEnabled: boolean;
+  cloudNativeConfig: {
+    selectedServices: string[];
+  };
+
+  vdiEnabled: boolean;
+  vdiConfig: {
+    platform: 'Azure Virtual Desktop (AVD)' | 'VMware Horizon Cloud' | 'Citrix DaaS' | 'Nutanix Frame' | 'Amazon WorkSpaces';
+    desktopCount: number;
+    profileStorage: string;
+  };
+
+  otherServicesEnabled: boolean;
+  otherServicesConfig: {
+    decoupledStorageEnabled: boolean;
+    decoupledStorageTB: number;
+    decoupledStorageProvider: string;
+    migrationAppliance: 'VMware HCX Enterprise' | 'Nutanix Move' | 'AWS MGN' | 'None';
+    observabilitySuite: string[];
+  };
+
   // 1. Step 1: Scope & Source Infrastructure
   customerName: string;
   architectName: string;
@@ -90,6 +148,54 @@ export interface WizardState {
 
 export function createDefaultWizardState(): WizardState {
   return {
+    objective: 'migrate-and-dr',
+    templateChoice: 'vmware-to-avs',
+
+    interconnectEnabled: true,
+    interconnectConfig: {
+      type: 'Azure ExpressRoute FastPath (10 Gbps)',
+      bandwidthGbps: 10,
+      redundancy: 'dual',
+      layer2Extension: true,
+      fastPathEnabled: true
+    },
+
+    securityNvaEnabled: true,
+    securityNvaConfig: {
+      firewall: 'Palo Alto Networks VM-Series',
+      microsegmentation: true,
+      wafEnabled: true,
+      wafSolution: 'Azure WAF on Application Gateway',
+      inspectionMode: 'dual-layer'
+    },
+
+    cloudNativeEnabled: true,
+    cloudNativeConfig: {
+      selectedServices: [
+        'Azure Virtual Network Peering & Transit',
+        'Managed Azure Kubernetes (AKS)',
+        'Azure SQL Managed Instance',
+        'Azure Storage Accounts & Blob Data',
+        'Azure Private Link & Private Endpoints'
+      ]
+    },
+
+    vdiEnabled: false,
+    vdiConfig: {
+      platform: 'Azure Virtual Desktop (AVD)',
+      desktopCount: 250,
+      profileStorage: 'Azure Files Premium (FSLogix Profiles)'
+    },
+
+    otherServicesEnabled: true,
+    otherServicesConfig: {
+      decoupledStorageEnabled: true,
+      decoupledStorageTB: 120,
+      decoupledStorageProvider: 'Azure NetApp Files (ANF NFS Datastore)',
+      migrationAppliance: 'VMware HCX Enterprise',
+      observabilitySuite: ['Aria Operations for Networks (vRNI)', 'Azure Monitor & Log Analytics']
+    },
+
     customerName: 'Global Financial Enterprises',
     architectName: 'Wasim Sayyed',
     projectDate: new Date().toISOString().split('T')[0],
@@ -122,14 +228,14 @@ export function createDefaultWizardState(): WizardState {
 
     selectedPublicProviders: ['azure'],
     landingZonePattern: 'Azure Virtual WAN Hub-and-Spoke',
-    connectivityCarrier: 'Hybrid (VPN + ExpressRoute / DirectConnect)',
-    firewallMode: 'nva',
+    connectivityCarrier: 'Direct Circuits with FastPath / Global Reach',
+    firewallMode: 'dual-layer',
     firewallProvider: 'Palo Alto Networks VM-Series',
     dualLayerInspectionFlow: 'sequential',
     wafEnabled: true,
     wafSolution: 'Azure WAF on Application Gateway',
 
-    targetPlatform: 'avs-gen1',
+    targetPlatform: 'avs-gen2',
     targetNodeSku: 'AV36P',
     targetNodeCount: 4,
     sddcMgmtCidr: '10.240.0.0/22',
@@ -394,25 +500,71 @@ export function buildActivePromptString(params: {
   drRtoMinutes?: number;
   drStrategy?: string;
   blueprintTemplate?: FocusedBlueprintTemplate | string;
+  // Dynamic component toggles & configs
+  interconnectEnabled?: boolean;
+  interconnectType?: string;
+  layer2Extension?: boolean;
+  securityNvaEnabled?: boolean;
+  cloudNativeEnabled?: boolean;
+  cloudNativeServices?: string[];
+  vdiEnabled?: boolean;
+  vdiPlatform?: string;
+  objective?: string;
 }): string {
-  const drClause = params.drEnabled
-    ? `Business Continuity & Resilience: Replicated via ${params.drEngine} with ${
-        params.drRpoMinutes === 0 ? '0-minute Synchronous Zero Data Loss RPO' : `${params.drRpoMinutes}-minute RPO`
-      }, ${params.drRtoMinutes}-minute RTO, disaster recovery strategy "${params.drStrategy}".`
-    : `Business Continuity: Disaster recovery not in scope for current architecture tier (standalone single-site topology).`;
+  const selectedElements: string[] = [];
 
-  let templateSpecialization = '';
-  if (params.blueprintTemplate === 'carrier-interconnect') {
-    templateSpecialization = 'Specialized Focus: Physical Carrier Interconnects and Direct Peering Circuits. Emphasize telco meet-me rooms, dark fiber paths, redundant MSEE / DirectConnect routers, 10G/100G dedicated cross-connects, MTU 9000 jumbo frame paths, and physical demarcation points.';
-  } else if (params.blueprintTemplate === 'transit-hub') {
-    templateSpecialization = 'Specialized Focus: Transit Hub-and-Spoke and Dynamic BGP Routing. Emphasize regional Virtual WAN Hubs, Azure Route Server, AWS Transit Gateway, Google Cloud Router, Tier-0 ECMP active-active routes, and transitive route propagation.';
-  } else if (params.blueprintTemplate === 'microseg-security') {
-    templateSpecialization = 'Specialized Focus: Zero-Trust Microsegmentation and Distributed Firewalling. Emphasize NSX Distributed Firewall (DFW) East-West security boundaries, Next-Gen NVA inspection pools, Application Gateway WAF zones, and isolated security tiers.';
-  } else if (params.blueprintTemplate === 'storage-dr') {
-    templateSpecialization = 'Specialized Focus: Decoupled Storage and Disaster Recovery Replication Flows. Emphasize external NFS datastores (Azure NetApp Files, Amazon FSx ONTAP), stretched SDDC clusters, VMware Site Recovery Manager (SRM) protection groups, and HCX RAV zero-RPO data paths.';
+  selectedElements.push('On-Premises Datacenter with enterprise compute racks and hypervisor nodes');
+
+  if (params.interconnectEnabled !== false) {
+    const l2Note = params.layer2Extension ? 'with Layer 2 Network Extension' : 'direct private circuit';
+    selectedElements.push(`Physical Cloud Interconnect (${params.interconnectType || params.connectivity}, ${l2Note})`);
   }
 
-  const clutterFreeRule = 'Style: Ultra-clean minimalist enterprise cloud blueprint. Strict visual hierarchy. Clear, organized component blocks with generous breathing room. Connect only vital architectural hops with illuminated neon paths; eliminate all spurious background lines, decorative clutter, cross-hatches, and tangled webs. Precise isometric orthographic perspective with high-legibility typographic callouts.';
+  if (params.securityNvaEnabled !== false) {
+    selectedElements.push(`Security Perimeter & NVA Hub (${params.nvaFirewall}, Web Application Firewall ${params.wafSolution})`);
+  }
 
-  return `Dark enterprise blueprint aesthetic 3D isometric architectural diagram of a production enterprise multi-cloud topology: "${params.trackTitle}" for ${params.customerName} (Lead Architect: ${params.architectName}, Date: ${params.projectDate}). Deep slate and midnight navy canvas background (#020617) with glowing neon cyan, teal, emerald, and electric violet network routes, glowing 3D hardware chassis, clean isometric platform annotations. Infrastructure Environment Tiers: ${params.envDescriptions}. Network Interconnect Backbone: ${params.linkDescriptions}. Perimeter Security & Landing Zone: Physical connectivity via ${params.connectivity}, Landing Zone pattern "${params.landingZone}", Next-Gen Firewall inspection by ${params.nvaFirewall}, Web Application Firewall "${params.wafSolution}". Decoupled Storage Tier: ${params.storageNote}. ${drClause} ${templateSpecialization} ${clutterFreeRule} Isometric orthographic 3D projection, photorealistic enterprise blueprint technical drawing, illuminated fiber optic paths, 4K presentation grade clarity.`;
+  selectedElements.push(`Primary Cloud SDDC Platform (${params.trackTitle})`);
+
+  if (params.cloudNativeEnabled) {
+    const services = params.cloudNativeServices?.length
+      ? params.cloudNativeServices.slice(0, 4).join(', ')
+      : 'Cloud-Native PaaS, Managed DB, and Storage';
+    selectedElements.push(`Cloud-Native Services platform tier (${services}) - distinctly separated from security perimeter`);
+  }
+
+  if (params.vdiEnabled) {
+    selectedElements.push(`Virtual Desktops VDI cluster (${params.vdiPlatform || 'Azure Virtual Desktop'}) on dedicated platform pod`);
+  }
+
+  const drClause = params.drEnabled
+    ? `Business Continuity & Resilience: Replicated via ${params.drEngine || 'Automated DR'} with ${
+        params.drRpoMinutes === 0 ? '0-minute Synchronous Zero Data Loss RPO' : `${params.drRpoMinutes}-minute RPO`
+      }, ${params.drRtoMinutes || 15}-minute RTO, disaster recovery strategy "${params.drStrategy || 'Pilot Light'}".`
+    : `Business Continuity: Disaster recovery not in scope for current architecture tier (standalone single-site topology).`;
+
+  if (params.drEnabled) {
+    selectedElements.push(`Secondary Disaster Recovery site (${params.drEngine || 'Automated DR'} with ${params.drRpoMinutes}-minute RPO)`);
+  }
+
+  if (params.storageNote && !params.storageNote.includes('No external')) {
+    selectedElements.push(`Decoupled External Storage (${params.storageNote})`);
+  }
+
+  const componentsPrompt = selectedElements.map(e => `• ${e}`).join('\n');
+
+  return `Professional 3D isometric cloud architecture illustration on a deep slate navy canvas (#020617) for ${params.customerName}.
+Architecture Subject: ${params.trackTitle}.
+${drClause}
+Show ONLY these selected infrastructure components:
+${componentsPrompt}
+
+Strict Visual & Connectivity Rules:
+- Render realistic, sleek 3D cloud and datacenter elements with clear component nameplate labels.
+- Represent Layer 2 extensions, interconnects, firewalls, NVAs, cloud-native services, VDI, and Disaster Recovery distinctly.
+- Keep security NVA and cloud-native services visually separated on their own dedicated platform tiers.
+- Draw clean, direct illuminated network tubes or connection paths connecting only the components where connections are actually required.
+- Absolutely avoid decorative, unnecessary, duplicate, or tangled lines.
+- Include component names and labels, but DO NOT display configuration details, IP addresses, CIDRs, routing tables, or lengthy technical text in the illustration.
+- Orthographic 3D perspective, polished executive presentation grade clarity, balanced spacing, high-end technical enterprise illustration.`;
 }

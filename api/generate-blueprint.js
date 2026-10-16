@@ -2,7 +2,7 @@ import { GoogleGenAI } from '@google/genai';
 
 const MODEL = 'gemini-3.1-flash-image';
 const FALLBACK_URL =
-  '/assets/images/blueprint_3d_isometric_1791610246387.jpg';
+  '/assets/images/cloud_3d_blueprint_enterprise_1792147431615.jpg';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
