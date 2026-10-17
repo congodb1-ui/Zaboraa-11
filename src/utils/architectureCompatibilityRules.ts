@@ -4,7 +4,11 @@
  * Automatically clears stale incompatible selections when switching templates or platforms.
  */
 
-import { WizardState, ArchitectureTemplateChoice } from '../types/wizardStateAdapter';
+import {
+  WizardState,
+  ArchitectureTemplateChoice,
+  getTargetConstraintsForObjective
+} from '../types/wizardStateAdapter';
 import { parseAndValidateCidr } from './cidrUtils';
 import { getAdminControlState } from './adminParameterControls';
 
@@ -461,27 +465,68 @@ export function validateWizardStep(
       if (!state.footprintScope) {
         errors.push('Please choose a deployment scope (Single cloud, Hybrid, or Multi-cloud).');
       }
+      if (state.objective && state.targets && state.targets.length > 0) {
+        const constraints = getTargetConstraintsForObjective(state.objective);
+        if (!constraints.allowMultiple && state.targets.length > 1) {
+          errors.push(
+            `Architectural objective "${constraints.ruleTitle}" allows exactly one target environment, but ${state.targets.length} targets are currently configured.`
+          );
+        }
+        if (state.objective === 'migration-only') {
+          const hasDrTarget = state.targets.some((t) => t.role === 'Disaster Recovery');
+          if (hasDrTarget) {
+            errors.push('Migration Only objective cannot include a Disaster Recovery target environment.');
+          }
+        } else if (state.objective === 'setup-dr') {
+          const nonDrTarget = state.targets.some((t) => t.role !== 'Disaster Recovery');
+          if (nonDrTarget) {
+            errors.push('Setup DR Infrastructure objective requires the target environment to be configured with the Disaster Recovery role.');
+          }
+        }
+      }
       break;
 
     case 2:
       if (!state.customerName || state.customerName.trim().length < 2) {
         errors.push('Please enter a valid customer or enterprise name.');
       }
-      if (!state.sourcePlatform) {
-        errors.push('Please select the source hypervisor platform.');
+      if (state.sourceMgmtCidr) {
+        const sourceCidrCheck = parseAndValidateCidr(state.sourceMgmtCidr, 'on-premise');
+        if (!sourceCidrCheck.isValid) {
+          errors.push(`Source Management CIDR is invalid: ${sourceCidrCheck.error || 'Must be a valid IPv4 CIDR'}`);
+        }
       }
-      const sourceCidrCheck = parseAndValidateCidr(state.sourceMgmtCidr, 'on-premise');
-      if (!sourceCidrCheck.isValid) {
-        errors.push(`Source Management CIDR is invalid: ${sourceCidrCheck.error || 'Must be a valid IPv4 CIDR'}`);
-      }
-      const totalHosts = state.clusters.reduce((acc, c) => acc + c.hostCount, 0);
-      if (totalHosts < 1) {
-        errors.push('At least 1 compute host must be configured in on-premises clusters.');
+      if (state.sources && state.sources.length > 0) {
+        for (const src of state.sources) {
+          if (!src.platform) {
+            errors.push(`Source "${src.name}": Please select a platform.`);
+          }
+          const cidrCheck = parseAndValidateCidr(src.mgmtCidr, 'on-premise');
+          if (!cidrCheck.isValid) {
+            errors.push(`Source "${src.name}": Management CIDR is invalid (${cidrCheck.error || 'Must be a valid IPv4 CIDR'}).`);
+          }
+          const hostCount = src.clusters?.reduce((acc, c) => acc + c.hostCount, 0) || 0;
+          if (hostCount < 1) {
+            errors.push(`Source "${src.name}": At least 1 compute host must be configured.`);
+          }
+        }
+      } else {
+        if (!state.sourcePlatform) {
+          errors.push('Please select the source hypervisor platform.');
+        }
+        const sourceCidrCheck = parseAndValidateCidr(state.sourceMgmtCidr, 'on-premise');
+        if (!sourceCidrCheck.isValid) {
+          errors.push(`Source Management CIDR is invalid: ${sourceCidrCheck.error || 'Must be a valid IPv4 CIDR'}`);
+        }
+        const totalHosts = state.clusters.reduce((acc, c) => acc + c.hostCount, 0);
+        if (totalHosts < 1) {
+          errors.push('At least 1 compute host must be configured in on-premises clusters.');
+        }
       }
       break;
 
     case 3:
-      if (!state.targetPlatform) {
+      if (!state.targetPlatform && (!state.targets || state.targets.length === 0)) {
         errors.push('Please select a target cloud platform.');
       }
       if (!state.landingZonePattern) {
@@ -528,11 +573,23 @@ export function validateWizardStep(
       break;
 
     case 5:
-      if (!state.targetNodeCount || state.targetNodeCount < 3) {
-        errors.push('Target SDDC requires a minimum cluster quorum of at least 3 dedicated bare-metal nodes.');
-      }
-      if (!state.targetNodeSku) {
-        errors.push('Please select a target bare-metal node SKU.');
+      if (state.targets && state.targets.length > 0) {
+        for (const tgt of state.targets) {
+          const minNodes = tgt.platform === 'vmc-aws' || tgt.platform === 'azure-native' ? 2 : 3;
+          if (!tgt.nodeCount || tgt.nodeCount < minNodes) {
+            errors.push(`Target "${tgt.name}": Requires a minimum cluster quorum of at least ${minNodes} dedicated nodes.`);
+          }
+          if (!tgt.nodeSku) {
+            errors.push(`Target "${tgt.name}": Please select a target bare-metal node SKU.`);
+          }
+        }
+      } else {
+        if (!state.targetNodeCount || state.targetNodeCount < 3) {
+          errors.push('Target SDDC requires a minimum cluster quorum of at least 3 dedicated bare-metal nodes.');
+        }
+        if (!state.targetNodeSku) {
+          errors.push('Please select a target bare-metal node SKU.');
+        }
       }
       if (state.drEnabled && !state.drConfig.engine) {
         errors.push('Please select an active disaster recovery replication engine.');

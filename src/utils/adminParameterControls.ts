@@ -289,7 +289,7 @@ export type AdminBlueprintParameterMap = Record<string, ParameterStatus>;
 
 export interface AdminControlStudioState {
   templates: AdminTemplateDef[];
-  parameters: ParameterControlMeta[];
+  parameters?: ParameterControlMeta[];
   parameterControls: AdminBlueprintParameterMap;
   constraints: AdminParamConstraints; // Kept for backward compatibility
   lastUpdated: string;

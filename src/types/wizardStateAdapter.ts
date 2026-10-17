@@ -44,6 +44,389 @@ export type ArchitectureTemplateChoice =
   | 'vmware-to-vmc'
   | 'custom-path';
 
+export interface SourceInfrastructureItem {
+  id: string;
+  name: string;
+  platform: 'vmware-onprem' | 'nutanix-onprem' | 'azure' | 'vmc-aws' | 'avs' | 'gcve' | 'nc2-azure';
+  hypervisorVersion?: string;
+  hardwareVendor?: string;
+  hardwareSku?: string;
+  mgmtCidr: string;
+  clusters: WizardClusterSpec[];
+  workloadVmsCount?: number;
+  vcenterFqdn?: string;
+  notes?: string;
+}
+
+export interface TargetInfrastructureItem {
+  id: string;
+  name: string;
+  platform: 'avs-gen1' | 'avs-gen2' | 'vmc-aws' | 'gcve' | 'nc2-azure' | 'azure-native';
+  role: 'Production' | 'Disaster Recovery';
+  region?: string;
+  nodeSku: string;
+  nodeCount: number;
+  sddcMgmtCidr: string;
+  decoupledStorageEnabled: boolean;
+  decoupledStorageTB: number;
+  decoupledStorageProvider?: string;
+  // Conditional Migration & DR
+  migrationRequired?: boolean;
+  migrationTool?: 'VMware HCX Enterprise' | 'Nutanix Move' | 'AWS MGN' | 'Azure Migrate' | 'None';
+  drRequired?: boolean;
+  drEngine?: string;
+  drRpoMinutes?: number;
+  drRtoMinutes?: number;
+  drStrategy?: string;
+  // Interconnect & Connectivity
+  connectivitySelection?: 'dedicated' | 'vpn' | 'vpn-and-dedicated';
+  interconnectCircuitType?: string;
+  circuitBandwidth?: '100 Mbps' | '200 Mbps' | '300 Mbps' | '500 Mbps' | '1 Gbps' | '10 Gbps';
+  layer2Extension?: boolean;
+}
+
+export interface TargetConstraints {
+  maxTargets: number;
+  minTargets: number;
+  allowMultiple: boolean;
+  requiredRole?: 'Production' | 'Disaster Recovery';
+  allowedRoles: Array<'Production' | 'Disaster Recovery'>;
+  ruleTitle: string;
+  ruleDescription: string;
+}
+
+export function getTargetConstraintsForObjective(objective: ArchitectureObjective): TargetConstraints {
+  switch (objective) {
+    case 'migration-only':
+      return {
+        maxTargets: 1,
+        minTargets: 1,
+        allowMultiple: false,
+        requiredRole: 'Production',
+        allowedRoles: ['Production'],
+        ruleTitle: 'Exactly 1 Target (Production Migration)',
+        ruleDescription: 'Migration-only architectural objective requires exactly one production target environment.'
+      };
+    case 'setup-dr':
+      return {
+        maxTargets: 1,
+        minTargets: 1,
+        allowMultiple: false,
+        requiredRole: 'Disaster Recovery',
+        allowedRoles: ['Disaster Recovery'],
+        ruleTitle: 'Exactly 1 Target (Disaster Recovery)',
+        ruleDescription: 'Dedicated DR infrastructure requires exactly one standby / disaster recovery target.'
+      };
+    case 'migrate-and-dr':
+      return {
+        maxTargets: 10,
+        minTargets: 1,
+        allowMultiple: true,
+        allowedRoles: ['Production', 'Disaster Recovery'],
+        ruleTitle: 'Multiple Targets Allowed (Production & DR)',
+        ruleDescription: 'Full modernization allows configuring primary production SDDCs and secondary disaster recovery target clusters.'
+      };
+    case 'extend-dc':
+      return {
+        maxTargets: 10,
+        minTargets: 1,
+        allowMultiple: true,
+        allowedRoles: ['Production'],
+        ruleTitle: 'Multiple Targets Allowed (Hybrid Cloud Burst)',
+        ruleDescription: 'Datacenter extension permits multiple hybrid cloud clusters across regions for elastic capacity burst.'
+      };
+  }
+}
+
+export function createDefaultSourceItem(
+  platform: 'vmware-onprem' | 'nutanix-onprem' | 'azure' | 'vmc-aws' | 'avs' | 'gcve' | 'nc2-azure' = 'vmware-onprem',
+  customName?: string
+): SourceInfrastructureItem {
+  switch (platform) {
+    case 'vmware-onprem':
+      return {
+        id: `src-vmware-${Date.now()}`,
+        name: customName || 'Primary VMware vSphere On-Premises',
+        platform: 'vmware-onprem',
+        hypervisorVersion: 'vSphere 8.0u3',
+        hardwareVendor: 'Dell Technologies',
+        hardwareSku: 'PowerEdge R760 (2x Intel Xeon Gold 6430, up to 1TB RAM)',
+        mgmtCidr: '10.10.0.0/16',
+        vcenterFqdn: 'vcenter.corp.internal',
+        workloadVmsCount: 380,
+        clusters: [
+          {
+            id: `cluster-${Date.now()}-1`,
+            name: 'Primary Management & Compute Cluster',
+            hostCount: 16,
+            sockets: 2,
+            coresPerSocket: 32,
+            hyperthreading: true,
+            ramGB: 768,
+            storageTB: 19.2
+          }
+        ],
+        notes: 'Enterprise core production VMware cluster'
+      };
+
+    case 'nutanix-onprem':
+      return {
+        id: `src-nutanix-${Date.now()}`,
+        name: customName || 'Primary Nutanix AHV On-Premises',
+        platform: 'nutanix-onprem',
+        hypervisorVersion: 'AOS 6.8 LTS (AHV)',
+        hardwareVendor: 'Supermicro',
+        hardwareSku: 'NX-8170-G9 All-NVMe Block',
+        mgmtCidr: '10.20.0.0/16',
+        vcenterFqdn: 'prism-central.corp.internal:9440',
+        workloadVmsCount: 240,
+        clusters: [
+          {
+            id: `cluster-${Date.now()}-2`,
+            name: 'Nutanix AOS AHV Block',
+            hostCount: 8,
+            sockets: 2,
+            coresPerSocket: 32,
+            hyperthreading: true,
+            ramGB: 512,
+            storageTB: 15.0
+          }
+        ],
+        notes: 'On-premises Nutanix DSF storage cluster'
+      };
+
+    case 'azure':
+      return {
+        id: `src-azure-${Date.now()}`,
+        name: customName || 'Microsoft Azure Native Infrastructure',
+        platform: 'azure',
+        hypervisorVersion: 'Azure Hyper-V / Azure ARM',
+        hardwareVendor: 'Dell Technologies',
+        hardwareSku: 'Azure Standard D32s_v5 Compute Pool',
+        mgmtCidr: '10.100.0.0/16',
+        vcenterFqdn: 'portal.azure.com (Primary Subscription)',
+        workloadVmsCount: 150,
+        clusters: [
+          {
+            id: `cluster-${Date.now()}-3`,
+            name: 'Azure vNet Workload Subnet',
+            hostCount: 6,
+            sockets: 2,
+            coresPerSocket: 16,
+            hyperthreading: true,
+            ramGB: 128,
+            storageTB: 8.0
+          }
+        ],
+        notes: 'Native Azure IaaS VMs and Blob Storage'
+      };
+
+    case 'avs':
+      return {
+        id: `src-avs-${Date.now()}`,
+        name: customName || 'Azure VMware Solution (AVS) Source',
+        platform: 'avs',
+        hypervisorVersion: 'vSphere 8.0u2 / AVS Private Cloud',
+        hardwareVendor: 'Dell Technologies',
+        hardwareSku: 'AV36P Cascade Lake',
+        mgmtCidr: '10.240.0.0/22',
+        vcenterFqdn: 'vcenter.eastus.avs.azure.com',
+        workloadVmsCount: 220,
+        clusters: [
+          {
+            id: `cluster-${Date.now()}-4`,
+            name: 'AVS AV36P Cluster',
+            hostCount: 4,
+            sockets: 2,
+            coresPerSocket: 18,
+            hyperthreading: true,
+            ramGB: 768,
+            storageTB: 19.2
+          }
+        ],
+        notes: 'Existing Azure VMware Solution SDDC private cloud'
+      };
+
+    case 'vmc-aws':
+      return {
+        id: `src-vmc-${Date.now()}`,
+        name: customName || 'VMware Cloud on AWS (VMC)',
+        platform: 'vmc-aws',
+        hypervisorVersion: 'VMC SDDC 1.24+ / vSphere 8',
+        hardwareVendor: 'Dell Technologies',
+        hardwareSku: 'i4i.metal (Nitro SSD All-Flash)',
+        mgmtCidr: '10.120.0.0/20',
+        vcenterFqdn: 'vcenter.sddc-us-east-1.vmc.vmware.com',
+        workloadVmsCount: 280,
+        clusters: [
+          {
+            id: `cluster-${Date.now()}-5`,
+            name: 'VMC i4i.metal Production Cluster',
+            hostCount: 4,
+            sockets: 2,
+            coresPerSocket: 32,
+            hyperthreading: true,
+            ramGB: 1024,
+            storageTB: 30.0
+          }
+        ],
+        notes: 'Existing AWS VMC SDDC connected via ENI'
+      };
+
+    case 'gcve':
+      return {
+        id: `src-gcve-${Date.now()}`,
+        name: customName || 'Google Cloud VMware Engine (GCVE)',
+        platform: 'gcve',
+        hypervisorVersion: 'vSphere 8.0 / Google Cloud VMware Engine',
+        hardwareVendor: 'Dell Technologies',
+        hardwareSku: 've1-standard-72 Intel Gold',
+        mgmtCidr: '10.140.0.0/20',
+        vcenterFqdn: 'vcenter.us-central1.gcp.vmwareengine.google.com',
+        workloadVmsCount: 200,
+        clusters: [
+          {
+            id: `cluster-${Date.now()}-6`,
+            name: 'GCVE ve1 Cluster',
+            hostCount: 3,
+            sockets: 2,
+            coresPerSocket: 36,
+            hyperthreading: true,
+            ramGB: 768,
+            storageTB: 19.2
+          }
+        ],
+        notes: 'Existing Google Cloud VMware Engine private cloud'
+      };
+
+    case 'nc2-azure':
+      return {
+        id: `src-nc2-${Date.now()}`,
+        name: customName || 'Nutanix Cloud Clusters (NC2) on Azure',
+        platform: 'nc2-azure',
+        hypervisorVersion: 'AOS 6.8 / Nutanix Prism Central on Azure',
+        hardwareVendor: 'Supermicro',
+        hardwareSku: 'AN36P Azure BareMetal',
+        mgmtCidr: '10.160.0.0/20',
+        vcenterFqdn: 'prism-azure.corp.internal:9440',
+        workloadVmsCount: 180,
+        clusters: [
+          {
+            id: `cluster-${Date.now()}-7`,
+            name: 'NC2 AN36P Azure BareMetal Cluster',
+            hostCount: 4,
+            sockets: 2,
+            coresPerSocket: 36,
+            hyperthreading: true,
+            ramGB: 1536,
+            storageTB: 38.4
+          }
+        ],
+        notes: 'Nutanix NC2 baremetal cluster deployed in Azure'
+      };
+  }
+}
+
+export function createDefaultTargetItem(
+  role: 'Production' | 'Disaster Recovery' = 'Production',
+  customName?: string,
+  platform: 'avs-gen1' | 'avs-gen2' | 'vmc-aws' | 'gcve' | 'nc2-azure' | 'azure-native' = 'avs-gen2'
+): TargetInfrastructureItem {
+  const isDr = role === 'Disaster Recovery';
+  return {
+    id: `tgt-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    name: customName || (isDr ? 'Secondary Disaster Recovery SDDC' : 'Primary Production SDDC'),
+    platform,
+    role,
+    region: isDr ? 'Azure East US 2 (Secondary)' : 'Azure East US (Primary)',
+    nodeSku: platform === 'avs-gen1' ? 'AV36P' : platform === 'avs-gen2' ? 'AV64' : 'AV36P',
+    nodeCount: isDr ? 3 : 4,
+    sddcMgmtCidr: isDr ? '10.244.0.0/22' : '10.240.0.0/22',
+    decoupledStorageEnabled: true,
+    decoupledStorageTB: isDr ? 60 : 120,
+    decoupledStorageProvider: 'Azure NetApp Files (ANF NFS Datastore)',
+    migrationRequired: !isDr,
+    migrationTool: !isDr ? 'VMware HCX Enterprise' : 'None',
+    drRequired: isDr,
+    drEngine: 'VMware Site Recovery Manager (SRM) + vSphere Replication',
+    drRpoMinutes: 5,
+    drRtoMinutes: 20,
+    drStrategy: 'Pilot Light (3-Node Minimum)',
+    connectivitySelection: 'dedicated',
+    interconnectCircuitType: 'Azure ExpressRoute FastPath (10 Gbps)',
+    circuitBandwidth: '1 Gbps',
+    layer2Extension: true
+  };
+}
+
+export function reconcileTargetsForObjective(
+  objective: ArchitectureObjective,
+  targets: TargetInfrastructureItem[]
+): {
+  reconciledTargets: TargetInfrastructureItem[];
+  reconciliationNotice?: string;
+  drEnabled: boolean;
+} {
+  let reconciled = targets.length > 0 ? [...targets] : [createDefaultTargetItem('Production')];
+  let notice: string | undefined = undefined;
+  let drEnabled = false;
+
+  switch (objective) {
+    case 'migration-only': {
+      drEnabled = false;
+      if (reconciled.length > 1) {
+        notice = `Objective "Migration Only" permits exactly one target. Retained primary target "${reconciled[0].name}" and cleared additional targets.`;
+        reconciled = [reconciled[0]];
+      }
+      reconciled[0] = {
+        ...reconciled[0],
+        role: 'Production',
+        migrationRequired: true,
+        drRequired: false
+      };
+      break;
+    }
+
+    case 'setup-dr': {
+      drEnabled = true;
+      if (reconciled.length > 1) {
+        const drTarget = reconciled.find(t => t.role === 'Disaster Recovery') || reconciled[0];
+        notice = `Objective "Setup DR" permits exactly one target. Configured "${drTarget.name}" as the dedicated DR target.`;
+        reconciled = [drTarget];
+      }
+      reconciled[0] = {
+        ...reconciled[0],
+        role: 'Disaster Recovery',
+        migrationRequired: false,
+        drRequired: true
+      };
+      break;
+    }
+
+    case 'migrate-and-dr': {
+      drEnabled = true;
+      // Multiple targets allowed. If only one target and no secondary DR target, user can add one in Step 5.
+      if (reconciled.length === 1 && reconciled[0].role === 'Disaster Recovery') {
+        // Keep as is or add production
+      }
+      break;
+    }
+
+    case 'extend-dc': {
+      drEnabled = false;
+      // Multiple targets allowed. Ensure roles are Production or Hybrid extension
+      reconciled = reconciled.map(t => ({
+        ...t,
+        role: 'Production' as const,
+        drRequired: false
+      }));
+      break;
+    }
+  }
+
+  return { reconciledTargets: reconciled, reconciliationNotice: notice, drEnabled };
+}
+
 export interface WizardState {
   // 4-Step Progressive Architecture Flow
   objective: ArchitectureObjective;
@@ -194,7 +577,7 @@ export interface WizardState {
   wafSolution?: string;
 
   // 3. Step 3: Target Platform & Capacity
-  targetPlatform: 'avs-gen1' | 'avs-gen2' | 'vmc-aws' | 'gcve' | 'nc2-azure';
+  targetPlatform: 'avs-gen1' | 'avs-gen2' | 'vmc-aws' | 'gcve' | 'nc2-azure' | 'azure-native';
   targetNodeSku: string;
   targetNodeCount: number;
   sddcMgmtCidr: string;
@@ -210,6 +593,10 @@ export interface WizardState {
     rtoMinutes: number;
     strategy: string;
   };
+
+  // Multi-source and multi-target support
+  sources?: SourceInfrastructureItem[];
+  targets?: TargetInfrastructureItem[];
 
   // Preserved unrepresented legacy fields (e.g. vlans, auditClassification, corporateId)
   preservedLegacyFields: Record<string, unknown>;
@@ -414,6 +801,15 @@ export function createDefaultWizardState(): WizardState {
       rtoMinutes: 20,
       strategy: 'Pilot Light (3-Node Minimum)'
     },
+
+    sources: [
+      createDefaultSourceItem('vmware-onprem')
+    ],
+
+    targets: [
+      createDefaultTargetItem('Production', 'Primary Production SDDC', 'avs-gen2'),
+      createDefaultTargetItem('Disaster Recovery', 'Secondary Disaster Recovery SDDC', 'avs-gen2')
+    ],
 
     preservedLegacyFields: {},
     activeTemplate: 'avs'

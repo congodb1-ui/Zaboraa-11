@@ -74,19 +74,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isCommercializeModalOpen, setIsCommercializeModalOpen] = useState<boolean>(false);
   const [subscriptionTier, setSubscriptionTierState] = useState<SubscriptionTier>('free');
 
-  // Load and sync profile from public.profiles in Supabase with metadata/email admin fallback
+  // Load and sync profile from public.profiles in Supabase
   const mapSupabaseUserToProfile = useCallback(async (sbUser: SupabaseUser): Promise<AuthUserProfile> => {
-    const hasAdminMeta = 
-      (sbUser.user_metadata as any)?.role === 'admin' || 
-      (sbUser.app_metadata as any)?.role === 'admin';
-
-    let role: UserRole = (
-      sbUser.email === 'admin@zaboraa.com' || 
-      sbUser.email === 'congodb1@gmail.com' || 
-      hasAdminMeta
-    ) ? 'admin' : 'user';
-
-    let tier: SubscriptionTier = role === 'admin' ? 'enterprise' : 'free';
+    let role: UserRole = sbUser.email === 'admin@zaboraa.com' ? 'admin' : 'user';
+    let tier: SubscriptionTier = sbUser.email === 'admin@zaboraa.com' ? 'enterprise' : 'free';
     let displayName = (sbUser.user_metadata as any)?.full_name || sbUser.email?.split('@')[0] || 'Enterprise Architect';
     let photoURL = (sbUser.user_metadata as any)?.avatar_url || null;
 
@@ -210,10 +201,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
         if (error) throw error;
         if (data?.url && typeof window !== 'undefined') {
+          // If URL is returned, navigate to OAuth URL
           window.location.href = data.url;
         }
       }
 
+      // Preview / Fallback Profile for testing when OAuth redirect is not supported in iframe
       const fallback: AuthUserProfile = {
         uid: 'sb-google-' + Date.now(),
         email: 'architect@zaboraa-cloud.io',
@@ -258,10 +251,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const cleanEmail = email.trim().toLowerCase();
 
     // Dedicated Hardcoded Enterprise Administrator Credentials
-    if ((cleanEmail === 'admin@zaboraa.com' || cleanEmail === 'congodb1@gmail.com') && pass === 'Zaboraa@123!') {
+    if (cleanEmail === 'admin@zaboraa.com' && pass === 'Zaboraa@123!') {
       const adminProfile: AuthUserProfile = {
-        uid: cleanEmail === 'congodb1@gmail.com' ? '7934ebc3-8c04-489a-8fcd-f7315ca860a0' : 'admin-master-root',
-        email: cleanEmail,
+        uid: 'admin-master-root',
+        email: 'admin@zaboraa.com',
         displayName: 'Enterprise Administrator',
         photoURL: null,
         licenseTier: 'enterprise',
@@ -290,8 +283,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      const simRole: UserRole = (cleanEmail === 'admin@zaboraa.com' || cleanEmail === 'congodb1@gmail.com') ? 'admin' : 'user';
-      const simTier: SubscriptionTier = simRole === 'admin' ? 'enterprise' : 'pro';
+      // Simulated local authentication when preview environment is offline
+      const simRole: UserRole = cleanEmail === 'admin@zaboraa.com' ? 'admin' : 'user';
+      const simTier: SubscriptionTier = cleanEmail === 'admin@zaboraa.com' ? 'enterprise' : 'pro';
       const simProfile: AuthUserProfile = {
         uid: 'user-' + Math.random().toString(36).substring(2, 9),
         email: cleanEmail,
@@ -334,6 +328,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
+      // Newly registered users are always standard 'user' role with 'free' tier (never auto-elevated to admin)
       const simRole: UserRole = 'user';
       const simTier: SubscriptionTier = 'free';
       const registered: AuthUserProfile = {
@@ -419,7 +414,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const clearAuthError = () => setAuthError(null);
 
-  const isAdmin = user?.role === 'admin' || user?.email === 'admin@zaboraa.com' || user?.email === 'congodb1@gmail.com';
+  const isAdmin = user?.role === 'admin' || user?.email === 'admin@zaboraa.com';
 
   return (
     <AuthContext.Provider

@@ -9,9 +9,16 @@ import {
   Globe2,
   ChevronDown,
   ChevronUp,
-  AlertCircle
+  AlertCircle,
+  Layers,
+  Info
 } from 'lucide-react';
-import { WizardState, ArchitectureObjective } from '../../types/wizardStateAdapter';
+import {
+  WizardState,
+  ArchitectureObjective,
+  getTargetConstraintsForObjective,
+  reconcileTargetsForObjective
+} from '../../types/wizardStateAdapter';
 import { validateWizardStep } from '../../utils/architectureCompatibilityRules';
 
 interface Step1SelectObjectiveProps {
@@ -24,6 +31,8 @@ interface ObjectiveOption {
   id: ArchitectureObjective;
   title: string;
   badge: string;
+  targetRule: string;
+  targetRoleDesc: string;
   description: string;
   recommendedFor: string;
   icon: React.ElementType;
@@ -35,37 +44,61 @@ const OBJECTIVE_OPTIONS: ObjectiveOption[] = [
     id: 'migration-only',
     title: 'Migration Only',
     badge: 'Datacenter Evacuation',
+    targetRule: 'Exactly 1 Target',
+    targetRoleDesc: 'Production Target Only',
     description: 'Relocate on-premises workloads to dedicated cloud bare-metal with near-zero downtime and zero hypervisor lock-in.',
     recommendedFor: 'Lease expiration, datacenter consolidation, hardware end-of-life',
     icon: Send,
-    highlights: ['Non-disruptive migration waves', 'Layer 2 network stretch', 'Zero-downtime cutover']
+    highlights: [
+      'Target rule: Exactly one target environment',
+      'Non-disruptive migration waves',
+      'Layer 2 network stretch & zero-downtime cutover'
+    ]
   },
   {
     id: 'extend-dc',
     title: 'Extend Production Data Center',
     badge: 'Hybrid Cloud Burst',
+    targetRule: 'Multiple Targets Allowed',
+    targetRoleDesc: 'Hybrid Compute Clusters',
     description: 'Seamlessly extend on-premises networks and clusters into hyperscaler infrastructure for dynamic capacity and seasonal burst.',
     recommendedFor: 'Hybrid operations, bursting dev/test workloads, elastic capacity',
     icon: Building2,
-    highlights: ['Single pane of glass management', 'Bi-directional VM mobility', 'ExpressRoute / Direct Connect']
+    highlights: [
+      'Target rule: Multiple targets allowed for multi-region capacity',
+      'Single pane of glass management & bi-directional VM mobility',
+      'ExpressRoute / Direct Connect / Interconnect routing'
+    ]
   },
   {
     id: 'setup-dr',
     title: 'Setup DR Infrastructure',
     badge: 'Business Continuity',
+    targetRule: 'Exactly 1 Target',
+    targetRoleDesc: 'Disaster Recovery Target Only',
     description: 'Establish a secondary cloud disaster recovery target with automated orchestration and sub-hour recovery SLAs.',
     recommendedFor: 'Replacing secondary physical datacenter, regulatory ransomware recovery',
     icon: ShieldCheck,
-    highlights: ['Pilot Light 3-node footprint', 'Sub-15 min RPO replication', 'One-click failover runbooks']
+    highlights: [
+      'Target rule: Exactly one dedicated DR standby target',
+      'Pilot Light 3-node footprint with sub-15 min RPO replication',
+      'One-click failover and non-disruptive test bubbles'
+    ]
   },
   {
     id: 'migrate-and-dr',
     title: 'Migrate & Setup DR',
     badge: 'Full Modernization',
+    targetRule: 'Multiple Targets Allowed',
+    targetRoleDesc: 'Production + Secondary DR Targets',
     description: 'Complete cloud modernization: migrate production workloads to cloud SDDC with secondary availability zone or multi-region DR protection.',
     recommendedFor: 'Enterprise core transformation, zero downtime and secondary region failover',
     icon: Zap,
-    highlights: ['Full production migration', 'Cross-region DR replication', 'Zero-trust perimeter security']
+    highlights: [
+      'Target rule: Multiple targets allowed (Prod + DR)',
+      'Full production migration with secondary region replication',
+      'Zero-trust perimeter security & isolated recovery vault'
+    ]
   }
 ];
 
@@ -76,17 +109,37 @@ export const Step1SelectObjective: React.FC<Step1SelectObjectiveProps> = ({
 }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [reconciliationNotice, setReconciliationNotice] = useState<string | null>(null);
 
   const selectedObjective = wizardState.objective || 'migrate-and-dr';
+  const activeConstraints = getTargetConstraintsForObjective(selectedObjective);
 
   const handleSelectObjective = (obj: ArchitectureObjective) => {
     setValidationError(null);
     onChange((prev) => {
-      const isDrNeeded = obj === 'setup-dr' || obj === 'migrate-and-dr';
+      // Non-destructively reconcile targets according to the newly selected architectural goal
+      const { reconciledTargets, reconciliationNotice: notice, drEnabled } = reconcileTargetsForObjective(
+        obj,
+        prev.targets || []
+      );
+
+      if (notice) {
+        setReconciliationNotice(notice);
+      } else {
+        setReconciliationNotice(null);
+      }
+
+      const primaryTarget = reconciledTargets[0];
+
       return {
         ...prev,
         objective: obj,
-        drEnabled: isDrNeeded,
+        drEnabled,
+        targets: reconciledTargets,
+        targetPlatform: (primaryTarget?.platform as any) || prev.targetPlatform,
+        targetNodeSku: primaryTarget?.nodeSku || prev.targetNodeSku,
+        targetNodeCount: primaryTarget?.nodeCount || prev.targetNodeCount,
+        sddcMgmtCidr: primaryTarget?.sddcMgmtCidr || prev.sddcMgmtCidr,
         interconnectEnabled: true,
         footprintScope: obj === 'extend-dc' ? 'private-sddc' : prev.footprintScope || 'hybrid-multi'
       };
@@ -124,7 +177,7 @@ export const Step1SelectObjective: React.FC<Step1SelectObjectiveProps> = ({
           What is the primary architecture goal?
         </h2>
         <p className="text-xs sm:text-sm text-slate-400 max-w-3xl leading-relaxed">
-          Select the strategic outcome for your enterprise cloud architecture. This drives sizing recommendations, interconnect configurations, and resiliency requirements.
+          Select the strategic outcome for your enterprise cloud architecture. This drives sizing recommendations, interconnect configurations, and allowed target topology constraints.
         </p>
       </div>
 
@@ -132,6 +185,22 @@ export const Step1SelectObjective: React.FC<Step1SelectObjectiveProps> = ({
         <div className="p-3 rounded-xl bg-rose-950/70 border border-rose-800 text-xs text-rose-300 flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{validationError}</span>
+        </div>
+      )}
+
+      {reconciliationNotice && (
+        <div className="p-3 rounded-xl bg-cyan-950/70 border border-cyan-500/50 text-xs text-cyan-200 flex items-center justify-between gap-2 animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <Info className="w-4 h-4 text-cyan-400 shrink-0" />
+            <span>{reconciliationNotice}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setReconciliationNotice(null)}
+            className="text-[11px] text-cyan-300 hover:text-white underline font-mono cursor-pointer"
+          >
+            Dismiss
+          </button>
         </div>
       )}
 
@@ -180,6 +249,19 @@ export const Step1SelectObjective: React.FC<Step1SelectObjectiveProps> = ({
                   )}
                 </div>
 
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded border font-semibold ${
+                    opt.targetRule.includes('Exactly 1')
+                      ? 'bg-amber-950/40 border-amber-500/40 text-amber-300'
+                      : 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
+                  }`}>
+                    {opt.targetRule}
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    ({opt.targetRoleDesc})
+                  </span>
+                </div>
+
                 <p className="text-xs text-slate-300 leading-relaxed">
                   {opt.description}
                 </p>
@@ -196,6 +278,25 @@ export const Step1SelectObjective: React.FC<Step1SelectObjectiveProps> = ({
             </div>
           );
         })}
+      </div>
+
+      {/* Target Rule Summary Banner for Active Selection */}
+      <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between text-xs">
+        <div className="flex items-center gap-2.5">
+          <Layers className="w-4 h-4 text-cyan-400 shrink-0" />
+          <div>
+            <span className="font-semibold text-white">Target Enforcement: </span>
+            <span className="text-cyan-300 font-medium">{activeConstraints.ruleTitle}</span>
+            <span className="text-slate-400 hidden sm:inline"> — {activeConstraints.ruleDescription}</span>
+          </div>
+        </div>
+        <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold shrink-0 ${
+          activeConstraints.allowMultiple
+            ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/40'
+            : 'bg-amber-950 text-amber-300 border border-amber-500/40'
+        }`}>
+          {activeConstraints.allowMultiple ? 'Multi-Target Enabled' : 'Single Target Only'}
+        </span>
       </div>
 
       {/* Deployment Scope (Required) */}

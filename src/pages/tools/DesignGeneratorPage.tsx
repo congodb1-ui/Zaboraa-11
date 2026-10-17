@@ -1016,6 +1016,7 @@ export const DesignGeneratorPage: React.FC = () => {
   const { user } = useAuth();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const blueprintSectionRef = useRef<HTMLDivElement>(null);
+  const wizardStepContainerRef = useRef<HTMLDivElement>(null);
   const [isSyncedToDrive, setIsSyncedToDrive] = useState<boolean>(false);
 
   const activeFeatureControls = featureControls || {
@@ -1094,10 +1095,22 @@ export const DesignGeneratorPage: React.FC = () => {
   const [importedLegacyContext, setImportedLegacyContext] = useState<ImportedLegacyContext>({});
   const [saveSuccessNotice, setSaveSuccessNotice] = useState<string | null>(null);
 
-  // 4-Step Enterprise Wizard Navigation & Viewport Layout State
+  // 5-Step Enterprise Wizard Navigation & Viewport Layout State
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [layoutMode, setLayoutMode] = useState<'split' | 'form-only' | 'canvas-only' | 'preview'>('form-only');
   const [wizardState, setWizardState] = useState<WizardState>(createDefaultWizardState);
+
+  // Smoothly scroll to the top of the wizard step container when step changes (Section 8)
+  const isFirstStepRender = useRef(true);
+  useEffect(() => {
+    if (isFirstStepRender.current) {
+      isFirstStepRender.current = false;
+      return;
+    }
+    requestAnimationFrame(() => {
+      wizardStepContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, [currentStep]);
 
   // Guardrail Modals for Template Switch & Cascade Deletion Protection
   const [showTemplateSwitchModal, setShowTemplateSwitchModal] = useState<boolean>(false);
@@ -2690,7 +2703,7 @@ export const DesignGeneratorPage: React.FC = () => {
       />
 
       {/* 5-Step Architecture Wizard Workflow Container */}
-      <div className="space-y-4">
+      <div ref={wizardStepContainerRef} className="space-y-4 scroll-mt-20">
         {layoutMode === 'preview' ? (
           <div className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">

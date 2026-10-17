@@ -16,7 +16,7 @@ export interface OfficialDocCitation {
 
 export interface PlatformNodeSkuSpec {
   sku: string;
-  platform: 'avs-gen1' | 'avs-gen2' | 'vmc-aws' | 'gcve' | 'nc2-azure';
+  platform: 'avs-gen1' | 'avs-gen2' | 'vmc-aws' | 'gcve' | 'nc2-azure' | 'azure-native';
   displayName: string;
   cpuArchitecture: string;
   sockets: number;
@@ -107,7 +107,24 @@ export const OFFICIAL_CITATIONS: Record<string, OfficialDocCitation> = {
 // =============================================================================
 
 export const TARGET_NODE_SKU_CATALOGUE: PlatformNodeSkuSpec[] = [
-  // AVS Generation 1
+  // AVS Generation 1 (Verified Microsoft Learn documentation)
+  {
+    sku: 'AV36',
+    platform: 'avs-gen1',
+    displayName: 'AV36 (Intel Xeon Gold 6140, 36 Cores, 576GB RAM)',
+    cpuArchitecture: 'Intel Xeon Gold 6140 (Skylake)',
+    sockets: 2,
+    physicalCores: 36,
+    logicalThreads: 72,
+    ramGB: 576,
+    rawStorageTB: 11.52,
+    storageType: 'All-Flash NVMe Local Datastore',
+    minNodesCluster: 3,
+    maxNodesCluster: 16,
+    maxNodesPrivateCloud: 96,
+    supportedGenerations: ['Gen 1'],
+    citation: OFFICIAL_CITATIONS.avsGen1
+  },
   {
     sku: 'AV36P',
     platform: 'avs-gen1',
@@ -251,6 +268,56 @@ export const TARGET_NODE_SKU_CATALOGUE: PlatformNodeSkuSpec[] = [
     maxNodesPrivateCloud: 56,
     supportedGenerations: ['NC2 Current'],
     citation: OFFICIAL_CITATIONS.nutanixNc2
+  },
+
+  // Azure Native (IaaS Compute Node Sizing)
+  {
+    sku: 'Standard_D32s_v5',
+    platform: 'azure-native',
+    displayName: 'Standard_D32s_v5 (32 vCPU, 128GB RAM, Premium SSD)',
+    cpuArchitecture: 'Intel Xeon Platinum 8370C',
+    sockets: 2,
+    physicalCores: 32,
+    logicalThreads: 64,
+    ramGB: 128,
+    rawStorageTB: 8.0,
+    storageType: 'Azure Premium SSD Managed Disks',
+    minNodesCluster: 2,
+    maxNodesCluster: 32,
+    maxNodesPrivateCloud: 128,
+    supportedGenerations: ['v5 General Purpose'],
+    citation: {
+      vendor: 'Microsoft',
+      documentTitle: 'Dv5 and Dsv5-series VM sizing - Azure Virtual Machines',
+      sourceUrl: 'https://learn.microsoft.com/en-us/azure/virtual-machines/dv5-dsv5-series',
+      applicableVersions: 'Azure Global Regions GA',
+      verificationDate: '2026-10-17',
+      verificationStatus: 'verified'
+    }
+  },
+  {
+    sku: 'Standard_E32s_v5',
+    platform: 'azure-native',
+    displayName: 'Standard_E32s_v5 (High-Memory, 32 vCPU, 256GB RAM)',
+    cpuArchitecture: 'Intel Xeon Platinum 8370C',
+    sockets: 2,
+    physicalCores: 32,
+    logicalThreads: 64,
+    ramGB: 256,
+    rawStorageTB: 16.0,
+    storageType: 'Azure Premium SSD / Ultra Disk',
+    minNodesCluster: 2,
+    maxNodesCluster: 32,
+    maxNodesPrivateCloud: 128,
+    supportedGenerations: ['v5 Memory Optimized'],
+    citation: {
+      vendor: 'Microsoft',
+      documentTitle: 'Ev5 and Esv5-series VM sizing - Azure Virtual Machines',
+      sourceUrl: 'https://learn.microsoft.com/en-us/azure/virtual-machines/ev5-esv5-series',
+      applicableVersions: 'Azure Global Regions GA',
+      verificationDate: '2026-10-17',
+      verificationStatus: 'verified'
+    }
   }
 ];
 

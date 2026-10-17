@@ -119,13 +119,15 @@ export default defineConfig(({ mode }) => {
               }
 
               if (!apiKey) {
-                console.error('GEMINI_API_KEY is not configured.');
-                res.statusCode = 500;
+                console.warn('Notice: GEMINI_API_KEY is not configured. Serving bundled enterprise 3D blueprint asset.');
+                res.statusCode = 200;
                 res.setHeader('Content-Type', 'application/json');
                 res.end(JSON.stringify({
                   success: false,
-                  error: 'Image generation is not configured.',
+                  isFallback: true,
+                  error: 'Image generation key not configured. Loaded bundled enterprise 3D blueprint.',
                   fallbackUrl: FALLBACK_URL,
+                  message: 'Rendered using bundled high-resolution 3D isometric architecture blueprint.'
                 }));
                 return;
               }
@@ -140,22 +142,41 @@ export default defineConfig(({ mode }) => {
               res.setHeader('Content-Type', 'application/json');
               res.end(JSON.stringify(result));
             } catch (err: any) {
-              console.error('Local blueprint generation failed:', {
-                message: err?.message,
-                status: err?.status,
-              });
+              const isSyntaxErr = err instanceof SyntaxError;
+              const isQuotaExceeded =
+                err?.status === 429 ||
+                err?.message?.includes('429') ||
+                err?.message?.includes('quota') ||
+                err?.message?.includes('RESOURCE_EXHAUSTED');
+
+              if (isSyntaxErr) {
+                res.statusCode = 400;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({
+                  success: false,
+                  error: 'Invalid JSON request body.'
+                }));
+                return;
+              }
+
+              if (isQuotaExceeded) {
+                console.warn('Gemini 3D blueprint quota limit reached (Free tier). Seamlessly falling back to bundled enterprise 3D blueprint asset.');
+              } else {
+                console.warn('Gemini 3D blueprint generation notice:', err?.message || err);
+              }
 
               if (res.writableEnded) return;
 
-              const status = err instanceof SyntaxError ? 400 : 502;
-              res.statusCode = status;
+              res.statusCode = 200;
               res.setHeader('Content-Type', 'application/json');
               res.end(JSON.stringify({
                 success: false,
-                error: status === 400
-                  ? 'Invalid JSON request body.'
-                  : 'Blueprint generation failed. Please try again.',
+                isFallback: true,
                 fallbackUrl: FALLBACK_URL,
+                error: isQuotaExceeded
+                  ? 'AI generation quota reached on free tier. Loaded high-resolution enterprise 3D architecture blueprint.'
+                  : 'AI blueprint generation unavailable. Loaded high-resolution enterprise 3D architecture blueprint.',
+                message: 'Rendered using bundled high-resolution 3D isometric architecture blueprint.'
               }));
             }
           });
