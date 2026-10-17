@@ -368,7 +368,7 @@ export const PUBLISHING_PLATFORM_CATALOGUE: ApplicationPublishingSpec[] = [
 ];
 
 export interface TrafficFlowDefinition {
-  flowId: 'internet-ingress-egress' | 'app-to-app' | 'east-west-workload' | 'mgmt-shared-services' | 'intercloud-hybrid';
+  flowId: 'internet-ingress-egress' | 'internal-app-to-app' | 'app-to-app' | 'east-west-workload' | 'mgmt-shared-services' | 'intercloud-hybrid';
   flowName: string;
   category: 'North-South' | 'East-West' | 'Hybrid Transit';
   description: string;

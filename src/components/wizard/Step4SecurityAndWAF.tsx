@@ -31,6 +31,7 @@ import {
   DEFAULT_TRAFFIC_FLOW_DEFINITIONS,
   FirewallModelSpec
 } from '../../data/securityArchitectureCatalogue';
+import { getAdminControlState } from '../../utils/adminParameterControls';
 
 interface Step4SecurityAndWAFProps {
   wizardState: WizardState;
@@ -49,6 +50,17 @@ export const Step4SecurityAndWAF: React.FC<Step4SecurityAndWAFProps> = ({
   const [expandedSection, setExpandedSection] = useState<'external' | 'internal' | 'dfw' | 'publishing' | 'loadbalancer' | 'waf' | 'traffic' | null>(null);
   const [showAdvancedExternal, setShowAdvancedExternal] = useState(false);
   const [showAdvancedInternal, setShowAdvancedInternal] = useState(false);
+  const [paramControls, setParamControls] = useState(() => getAdminControlState().parameterControls);
+
+  React.useEffect(() => {
+    const handler = (e: any) => {
+      if (e.detail?.parameterControls) {
+        setParamControls(e.detail.parameterControls);
+      }
+    };
+    window.addEventListener('zaboraa:admin-params-changed', handler);
+    return () => window.removeEventListener('zaboraa:admin-params-changed', handler);
+  }, []);
 
   const toggleAccordion = (section: 'external' | 'internal' | 'dfw' | 'publishing' | 'loadbalancer' | 'waf' | 'traffic') => {
     setExpandedSection(prev => prev === section ? null : section);
@@ -286,6 +298,7 @@ export const Step4SecurityAndWAF: React.FC<Step4SecurityAndWAFProps> = ({
       {/* ========================================================================= */}
       {/* 1. EXTERNAL / PERIMETER FIREWALL (NORTH-SOUTH EDGE) */}
       {/* ========================================================================= */}
+      {paramControls.externalFirewall !== 'hidden' && (
       <div className="rounded-xl border border-slate-800 bg-slate-900 overflow-hidden shadow-sm">
         <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80">
           <div className="flex items-center gap-3">
@@ -507,10 +520,12 @@ export const Step4SecurityAndWAF: React.FC<Step4SecurityAndWAFProps> = ({
           </div>
         )}
       </div>
+      )}
 
       {/* ========================================================================= */}
       {/* 2. INTERNAL / SEGMENTATION FIREWALL (EAST-WEST TRANSIT) */}
       {/* ========================================================================= */}
+
       <div className="rounded-xl border border-slate-800 bg-slate-900 overflow-hidden shadow-sm">
         <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80">
           <div className="flex items-center gap-3">

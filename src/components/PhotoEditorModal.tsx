@@ -18,7 +18,7 @@ export const PhotoEditorModal: React.FC = () => {
   const { siteConfig, isPhotoEditorOpen, setIsPhotoEditorOpen, updateFounderPhoto } = useCustomization();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const initialPhoto = siteConfig.founder.portraitImage || '/assets/images/wasim_sayyed_executive_1791473154875.jpg';
+  const initialPhoto = siteConfig.founder.portraitImage || '/assets/images/wasim_pic_02.jpg';
   const initialStyle: PhotoStyle = siteConfig.founder.photoStyle || {
     zoom: 1.05,
     brightness: 102,
@@ -74,7 +74,7 @@ export const PhotoEditorModal: React.FC = () => {
   };
 
   const handleReset = () => {
-    setCurrentImage('/assets/images/wasim_sayyed_executive_1791473154875.jpg');
+    setCurrentImage('/assets/images/wasim_pic_02.jpg');
     setZoom(1.05);
     setBrightness(102);
     setContrast(104);
@@ -186,11 +186,37 @@ export const PhotoEditorModal: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
+                    setCurrentImage('/assets/images/Wasim-Pic-02.png');
+                    setPosition('center');
+                    setZoom(1.0);
+                    setBrightness(100);
+                    setContrast(100);
+                    setBorderGlow('none');
+                  }}
+                  className={`p-2 rounded-lg border text-left flex items-center gap-2 transition-all cursor-pointer ${
+                    currentImage.includes('wasim_pic_02') || currentImage.includes('Wasim-Pic-02')
+                      ? 'bg-slate-800 border-cyan-400 text-white font-semibold ring-1 ring-cyan-400/50'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <div className="w-7 h-7 rounded-md overflow-hidden bg-slate-800 shrink-0">
+                    <img
+                      src="/assets/images/Wasim-Pic-02.png"
+                      alt="Uploaded Executive Portrait"
+                      className="w-full h-full object-cover object-center"
+                    />
+                  </div>
+                  <span className="truncate text-[11px]">Uploaded Plan (Original)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
                     setCurrentImage('/assets/images/wasim_headshot_framer.png');
                     setPosition('center');
                     setZoom(1.0);
                   }}
-                  className={`p-2 rounded-lg border text-left flex items-center gap-2 transition-all ${
+                  className={`p-2 rounded-lg border text-left flex items-center gap-2 transition-all cursor-pointer ${
                     currentImage.includes('wasim_headshot_framer')
                       ? 'bg-slate-800 border-cyan-400 text-white font-semibold'
                       : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
@@ -212,7 +238,7 @@ export const PhotoEditorModal: React.FC = () => {
                     setCurrentImage('/assets/images/wasim_sayyed_executive_1791473154875.jpg');
                     setPosition('top');
                   }}
-                  className={`p-2 rounded-lg border text-left flex items-center gap-2 transition-all ${
+                  className={`p-2 rounded-lg border text-left flex items-center gap-2 transition-all cursor-pointer ${
                     currentImage.includes('wasim_sayyed_executive')
                       ? 'bg-slate-800 border-cyan-400 text-white font-semibold'
                       : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'

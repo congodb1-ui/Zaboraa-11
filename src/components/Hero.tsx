@@ -196,9 +196,11 @@ export const Hero: React.FC = () => {
                               }
                             }}
                             style={{
-                              transform: `scale(${photoStyle.zoom || 1.05})`,
-                              filter: `brightness(${photoStyle.brightness || 102}%) contrast(${photoStyle.contrast || 104}%)`,
-                              objectPosition: photoStyle.objectPosition || 'top'
+                              transform: photoStyle?.zoom && photoStyle.zoom !== 1 ? `scale(${photoStyle.zoom})` : undefined,
+                              filter: photoStyle?.brightness && photoStyle?.contrast && (photoStyle.brightness !== 100 || photoStyle.contrast !== 100)
+                                ? `brightness(${photoStyle.brightness}%) contrast(${photoStyle.contrast}%)`
+                                : undefined,
+                              objectPosition: photoStyle?.objectPosition || 'center'
                             }}
                             className="w-full h-full object-cover transition-transform duration-300 group-hover/avatar:scale-105"
                           />

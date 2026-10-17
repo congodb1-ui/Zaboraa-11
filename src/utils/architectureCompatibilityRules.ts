@@ -6,6 +6,7 @@
 
 import { WizardState, ArchitectureTemplateChoice } from '../types/wizardStateAdapter';
 import { parseAndValidateCidr } from './cidrUtils';
+import { getAdminControlState } from './adminParameterControls';
 
 export interface TemplateDefinition {
   id: ArchitectureTemplateChoice;
@@ -313,7 +314,43 @@ export function sanitizeWizardStateForTemplate(
   state: WizardState,
   newTemplateId: ArchitectureTemplateChoice
 ): { state: WizardState; clearedNotices: string[] } {
-  const template = CANONICAL_TEMPLATES.find((t) => t.id === newTemplateId);
+  let template: TemplateDefinition | undefined = undefined;
+
+  if (typeof window !== 'undefined') {
+    try {
+      const adminState = getAdminControlState();
+      const adminMatch = adminState.templates.find((t) => t.id === newTemplateId);
+      if (adminMatch) {
+        template = {
+          id: adminMatch.id as any,
+          title: adminMatch.title,
+          badge: adminMatch.badge,
+          description: adminMatch.description,
+          targetProvider:
+            adminMatch.targetPlatform === 'gcve' ? 'gcp' :
+            adminMatch.targetPlatform === 'vmc-aws' ? 'aws' : 'azure',
+          targetPlatform: (adminMatch.targetPlatform || 'avs-gen2') as any,
+          sourcePlatform: (adminMatch.sourcePlatform || 'vmware') as any,
+          defaultSku: adminMatch.nodeSku,
+          defaultNodeCount: adminMatch.recommendedNodes,
+          recommendedMigrationTool: (adminMatch.recommendedMigrationTool || 'VMware HCX Enterprise') as any,
+          defaultInterconnect: adminMatch.interconnect,
+          defaultStorage: adminMatch.storage,
+          defaultStorageTB: adminMatch.storageTB || 100,
+          defaultFirewall: adminMatch.firewall || adminMatch.security,
+          defaultLandingZone: adminMatch.landingZone,
+          defaultDrEngine: adminMatch.drEngine
+        };
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  if (!template) {
+    template = CANONICAL_TEMPLATES.find((t) => t.id === newTemplateId);
+  }
+
   if (!template) {
     return { state: { ...state, templateChoice: newTemplateId }, clearedNotices: [] };
   }

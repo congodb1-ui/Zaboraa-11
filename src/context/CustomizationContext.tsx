@@ -161,7 +161,16 @@ export const CustomizationProvider: React.FC<{ children: React.ReactNode }> = ({
             brandLogoUrl: parsed.brandLogoUrl || parsed.adminSettings?.brandLogoUrl || undefined,
             founder: {
               ...INITIAL_SITE_DATA.founder,
-              ...(parsed.founder || {})
+              ...(parsed.founder || {}),
+              portraitImage:
+                !parsed.founder?.portraitImage ||
+                parsed.founder?.portraitImage?.includes('wasim_headshot_framer') ||
+                parsed.founder?.portraitImage?.includes('founder_architect_portrait') ||
+                parsed.founder?.portraitImage?.includes('wasim_sayyed_executive') ||
+                parsed.founder?.portraitImage?.includes('wasim_pic_02.jpg')
+                  ? INITIAL_SITE_DATA.founder.portraitImage
+                  : parsed.founder.portraitImage,
+              photoStyle: INITIAL_SITE_DATA.founder.photoStyle
             },
             hero: {
               ...INITIAL_SITE_DATA.hero,
@@ -176,16 +185,6 @@ export const CustomizationProvider: React.FC<{ children: React.ReactNode }> = ({
             services: parsed.services || INITIAL_SITE_DATA.services,
             enableHotspots: parsed.enableHotspots !== undefined ? parsed.enableHotspots : true
           };
-          if (!merged.founder.portraitImage || merged.founder.portraitImage.includes('founder_architect_portrait')) {
-            merged.founder.portraitImage = INITIAL_SITE_DATA.founder.portraitImage;
-          }
-          if (!merged.featuredVideoId) {
-            merged.featuredVideoId = INITIAL_SITE_DATA.featuredVideoId;
-          }
-          if (!merged.founder.photoStyle) {
-            merged.founder.photoStyle = INITIAL_SITE_DATA.founder.photoStyle;
-          }
-          // If fewer than 8 platforms, missing nutanix or aria, using old fallbacks, or missing subsections, upgrade to complete initial set
           const hasOldFallbacks = merged.platformShowcases?.some((p: any) =>
             p.designs?.some((d: any) => d.imageUrl?.includes('architecture_avs_mesh') && p.id !== 'avs')
           );

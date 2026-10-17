@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useCustomization } from '../context/CustomizationContext';
 import { CloudProvider, ArchitectureDiagram, VideoItem, TutorialArticle } from '../types/siteData';
 import { ZaboraaLogoMark } from './ZaboraaLogo';
+import { AdminParameterControlStudio } from './AdminParameterControlStudio';
 import {
   X,
   Sliders,
@@ -79,7 +80,7 @@ export const CustomizerDrawer: React.FC = () => {
     updateFeatureControls
   } = useCustomization();
 
-  const [activeTab, setActiveTab] = useState<'appearance' | 'feature-controls' | 'track-records' | 'general' | 'hero' | 'platforms' | 'videos' | 'tutorials' | 'backup'>('appearance');
+  const [activeTab, setActiveTab] = useState<'appearance' | 'blueprint-studio' | 'feature-controls' | 'track-records' | 'general' | 'hero' | 'platforms' | 'videos' | 'tutorials' | 'backup'>('appearance');
   const [saveStatus, setSaveStatus] = useState<string>('');
   const [importText, setImportText] = useState<string>('');
   const [importError, setImportError] = useState<string>('');
@@ -403,6 +404,7 @@ export const CustomizerDrawer: React.FC = () => {
         <div className="flex overflow-x-auto border-b border-slate-800 bg-slate-950/50 p-1.5 gap-1 text-xs">
           {[
             { id: 'appearance', label: 'UI Designs & Themes', icon: Palette },
+            { id: 'blueprint-studio', label: 'Blueprint Studio & Templates', icon: Layout },
             { id: 'feature-controls', label: 'Feature Controls', icon: Sliders },
             { id: 'track-records', label: 'Track Records & Credentials', icon: Shield },
             { id: 'general', label: 'General & Founder', icon: User },
@@ -958,6 +960,11 @@ export const CustomizerDrawer: React.FC = () => {
                 </button>
               </div>
             </div>
+          )}
+
+          {/* TAB: BLUEPRINT PARAMETERS & TEMPLATES STUDIO */}
+          {activeTab === 'blueprint-studio' && (
+            <AdminParameterControlStudio />
           )}
 
           {/* TAB: FEATURE CONTROLS */}

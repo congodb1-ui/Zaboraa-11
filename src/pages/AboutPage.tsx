@@ -19,7 +19,7 @@ export const AboutPage: React.FC = () => {
 
   const resolvedPortrait = resolveMediaUrl(
     founder.portraitImage,
-    '/assets/images/wasim_sayyed_executive_1791473154875.jpg'
+    '/assets/images/Wasim-Pic-02.png'
   );
 
   return (
@@ -58,7 +58,7 @@ export const AboutPage: React.FC = () => {
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover transition-transform duration-300 group-hover/avatar:scale-105"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/assets/images/wasim_sayyed_executive_1791473154875.jpg';
+                        (e.target as HTMLImageElement).src = '/assets/images/Wasim-Pic-02.png';
                       }}
                     />
                     {/* Hover / Click Overlay to Change Photo - Only visible for Admin */}

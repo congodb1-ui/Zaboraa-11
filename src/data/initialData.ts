@@ -624,13 +624,13 @@ export const INITIAL_SITE_DATA: SiteConfig = {
     phone: '+91 7497624807',
     email: 'contact@zaboraa.com',
     location: 'Bangalore & Global Advisory',
-    portraitImage: '/assets/images/wasim_headshot_framer.png',
+    portraitImage: '/assets/images/Wasim-Pic-02.png',
     photoStyle: {
-      zoom: 1.05,
-      brightness: 102,
-      contrast: 104,
-      objectPosition: 'top',
-      borderGlow: 'cyan'
+      zoom: 1.0,
+      brightness: 100,
+      contrast: 100,
+      objectPosition: 'center',
+      borderGlow: 'none'
     }
   },
   hero: {
