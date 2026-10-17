@@ -71,6 +71,41 @@ export const DEFAULT_ADMIN_PARAMETERS: AdminParameterConstraint[] = [
     description: 'Next-Gen Firewall NVA cluster in transit hub.'
   },
   {
+    id: 'externalFirewall',
+    label: 'External Perimeter Firewall (North-South Edge)',
+    category: 'security',
+    status: 'mandatory',
+    description: 'Autonomous edge firewall cluster for Internet ingress/egress and direct circuit inspection.'
+  },
+  {
+    id: 'internalFirewall',
+    label: 'Internal Segmentation Firewall (East-West Transit)',
+    category: 'security',
+    status: 'optional',
+    description: 'Inter-VNet, inter-subnet, or cross-tenant stateful traffic segmentation.'
+  },
+  {
+    id: 'nsxDistributedFirewall',
+    label: 'NSX Distributed Firewall (Host Microsegmentation)',
+    category: 'security',
+    status: 'optional',
+    description: 'Kernel-level Zero-Trust microsegmentation for intra-SDDC east-west traffic.'
+  },
+  {
+    id: 'applicationPublishing',
+    label: 'External Application Publishing Platform (VAP)',
+    category: 'security',
+    status: 'optional',
+    description: 'Customer VAP, Citrix Gateway, Azure App Proxy, or Cloudflare Access ingress controller.'
+  },
+  {
+    id: 'loadBalancing',
+    label: 'Application Delivery & Load Balancing',
+    category: 'security',
+    status: 'optional',
+    description: 'VMware NSX Advanced Load Balancer (Avi), native NSX LB, or hyperscaler ALB/NLB.'
+  },
+  {
     id: 'decoupledStorage',
     label: 'Decoupled External Storage Datastore',
     category: 'destination',

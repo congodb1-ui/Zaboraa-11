@@ -70,6 +70,75 @@ export interface WizardState {
     inspectionMode: 'centralized-nva' | 'distributed' | 'dual-layer';
   };
 
+  // Dedicated Enterprise Multi-Vendor Security Tiers
+  externalFirewall: {
+    status: 'enabled' | 'existing' | 'not-applicable';
+    vendor: string;
+    model: string;
+    isCustomModel?: boolean;
+    customModelName?: string;
+    customThroughputGbps?: number;
+    deploymentMode: 'Active/Passive' | 'Active/Active ECMP' | 'Gateway Load Balancer (GWLB)' | 'Azure Route Server (ARS)' | 'Native Managed Fabric';
+    haTopology: string;
+    placement: string;
+    throughputGbps: number;
+    maxSessions: string;
+    inspectionPolicy?: string;
+  };
+
+  internalFirewall: {
+    status: 'enabled' | 'existing' | 'not-applicable';
+    vendor: string;
+    model: string;
+    isCustomModel?: boolean;
+    customModelName?: string;
+    customThroughputGbps?: number;
+    deploymentMode: 'Active/Passive' | 'Active/Active ECMP' | 'Gateway Load Balancer (GWLB)' | 'Azure Route Server (ARS)' | 'Native Managed Fabric';
+    haTopology: string;
+    placement: string;
+    throughputGbps: number;
+    maxSessions: string;
+    inspectionPolicy?: string;
+  };
+
+  nsxDistributedFirewall: {
+    enabled: boolean;
+    version: string;
+    policyMode: 'zero-trust-microsegmentation' | 'environment-isolation' | 'zone-based';
+    loggingEnabled: boolean;
+    idpsEnabled: boolean;
+  };
+
+  applicationPublishing: {
+    enabled: boolean;
+    platformName: string;
+    isCustomProduct?: boolean;
+    customProductName?: string;
+    ingressMode: 'reverse-proxy' | 'zero-trust-tunnel' | 'ssl-offload' | 'dual-tier';
+    publishingPort: number;
+    protocol: 'HTTPS' | 'TCP' | 'Custom';
+    authenticationIntegration: string;
+  };
+
+  loadBalancing: {
+    enabled: boolean;
+    platform: string;
+    highAvailability: 'active-standby' | 'active-active-cluster' | 'managed-hyperscaler';
+    sslOffloading: boolean;
+    algorithm: 'round-robin' | 'least-connections' | 'ip-hash' | 'consistent-hashing';
+    healthCheckIntervalSeconds: number;
+  };
+
+  trafficFlows: Array<{
+    flowId: string;
+    flowName: string;
+    category: 'North-South' | 'East-West' | 'Hybrid Transit';
+    description: string;
+    inspectingControls: Array<'external-firewall' | 'internal-firewall' | 'nsx-dfw' | 'waf' | 'publishing-platform' | 'load-balancer'>;
+    bypassInspection: boolean;
+    notes?: string;
+  }>;
+
   cloudNativeEnabled: boolean;
   cloudNativeConfig: {
     selectedServices: string[];
@@ -170,6 +239,99 @@ export function createDefaultWizardState(): WizardState {
       wafSolution: 'Azure WAF on Application Gateway',
       inspectionMode: 'dual-layer'
     },
+
+    externalFirewall: {
+      status: 'enabled',
+      vendor: 'Palo Alto Networks',
+      model: 'VM-300',
+      deploymentMode: 'Active/Active ECMP',
+      haTopology: 'Active/Active Multi-Zone Cluster',
+      placement: 'Perimeter Ingress/Egress Transit Hub',
+      throughputGbps: 4.0,
+      maxSessions: '800,000',
+      inspectionPolicy: 'Full Layer 7 Threat Prevention & URL Filtering'
+    },
+
+    internalFirewall: {
+      status: 'enabled',
+      vendor: 'Fortinet',
+      model: 'FortiGate-VM04',
+      deploymentMode: 'Active/Passive',
+      haTopology: 'Active/Passive Stateful Failover',
+      placement: 'Internal Workload & Inter-Subnet Segmentation',
+      throughputGbps: 7.5,
+      maxSessions: '1,500,000',
+      inspectionPolicy: 'East-West Inter-Tier Microsegmentation & IPS'
+    },
+
+    nsxDistributedFirewall: {
+      enabled: true,
+      version: 'NSX 4.2.x',
+      policyMode: 'zero-trust-microsegmentation',
+      loggingEnabled: true,
+      idpsEnabled: true
+    },
+
+    applicationPublishing: {
+      enabled: true,
+      platformName: 'Customer VAP (Virtual Access Platform)',
+      ingressMode: 'reverse-proxy',
+      publishingPort: 443,
+      protocol: 'HTTPS',
+      authenticationIntegration: 'SAML 2.0 / Microsoft Entra ID'
+    },
+
+    loadBalancing: {
+      enabled: true,
+      platform: 'VMware NSX Advanced Load Balancer (Avi Networks)',
+      highAvailability: 'active-standby',
+      sslOffloading: true,
+      algorithm: 'least-connections',
+      healthCheckIntervalSeconds: 5
+    },
+
+    trafficFlows: [
+      {
+        flowId: 'internet-ingress-egress',
+        flowName: 'Internet Ingress & Egress',
+        category: 'North-South',
+        description: 'Public inbound HTTPS traffic and outbound cloud egress.',
+        inspectingControls: ['external-firewall', 'waf'],
+        bypassInspection: false
+      },
+      {
+        flowId: 'internal-app-to-app',
+        flowName: 'Internal Application-to-Application',
+        category: 'East-West',
+        description: 'Inter-tier communication (Web to App, App to Database).',
+        inspectingControls: ['internal-firewall', 'load-balancer'],
+        bypassInspection: false
+      },
+      {
+        flowId: 'east-west-workload',
+        flowName: 'East-West Workload Microsegmentation',
+        category: 'East-West',
+        description: 'Intra-subnet host-to-host or VM-to-VM traffic within the same segment.',
+        inspectingControls: ['nsx-dfw'],
+        bypassInspection: false
+      },
+      {
+        flowId: 'mgmt-shared-services',
+        flowName: 'Management & Shared Services',
+        category: 'Hybrid Transit',
+        description: 'Administrative access, vCenter, Active Directory, DNS, NTP, and Backup.',
+        inspectingControls: ['internal-firewall'],
+        bypassInspection: false
+      },
+      {
+        flowId: 'intercloud-hybrid',
+        flowName: 'Inter-Cloud & Datacenter Transit',
+        category: 'Hybrid Transit',
+        description: 'Traffic between On-Premises HQ/DC and Cloud SDDC over ExpressRoute or Direct Connect.',
+        inspectingControls: ['external-firewall', 'internal-firewall'],
+        bypassInspection: false
+      }
+    ],
 
     cloudNativeEnabled: true,
     cloudNativeConfig: {
@@ -329,6 +491,25 @@ export function mapLegacyToWizard(
   // Retain all unrepresented legacy context fields
   if (legacyContext.preservedExtraFields) {
     wizard.preservedLegacyFields = { ...legacyContext.preservedExtraFields };
+
+    if (legacyContext.preservedExtraFields.externalFirewall) {
+      wizard.externalFirewall = legacyContext.preservedExtraFields.externalFirewall as any;
+    }
+    if (legacyContext.preservedExtraFields.internalFirewall) {
+      wizard.internalFirewall = legacyContext.preservedExtraFields.internalFirewall as any;
+    }
+    if (legacyContext.preservedExtraFields.nsxDistributedFirewall) {
+      wizard.nsxDistributedFirewall = legacyContext.preservedExtraFields.nsxDistributedFirewall as any;
+    }
+    if (legacyContext.preservedExtraFields.applicationPublishing) {
+      wizard.applicationPublishing = legacyContext.preservedExtraFields.applicationPublishing as any;
+    }
+    if (legacyContext.preservedExtraFields.loadBalancing) {
+      wizard.loadBalancing = legacyContext.preservedExtraFields.loadBalancing as any;
+    }
+    if (legacyContext.preservedExtraFields.trafficFlows) {
+      wizard.trafficFlows = legacyContext.preservedExtraFields.trafficFlows as any;
+    }
   }
 
   return wizard;
@@ -454,6 +635,13 @@ export function mapWizardToLegacy(
     landingZone: wizard.landingZonePattern,
     nvaFirewall: wizard.firewallProvider,
     wafSolution: wizard.wafSolution || 'Azure WAF on Application Gateway',
+    // Enterprise Multi-Vendor Security Tiers
+    externalFirewall: wizard.externalFirewall,
+    internalFirewall: wizard.internalFirewall,
+    nsxDistributedFirewall: wizard.nsxDistributedFirewall,
+    applicationPublishing: wizard.applicationPublishing,
+    loadBalancing: wizard.loadBalancing,
+    trafficFlows: wizard.trafficFlows,
     // Retain preserved legacy fields
     ...wizard.preservedLegacyFields
   };
@@ -512,6 +700,13 @@ export function buildActivePromptString(params: {
   vdiEnabled?: boolean;
   vdiPlatform?: string;
   objective?: string;
+  // Multi-tier security architecture parameters
+  externalFirewallDesc?: string;
+  internalFirewallDesc?: string;
+  nsxDistributedFirewallDesc?: string;
+  applicationPublishingDesc?: string;
+  loadBalancingDesc?: string;
+  trafficFlowsSummary?: string;
 }): string {
   const selectedElements: string[] = [];
 
@@ -522,8 +717,27 @@ export function buildActivePromptString(params: {
     selectedElements.push(`Physical Cloud Interconnect (${params.interconnectType || params.connectivity}, ${l2Note})`);
   }
 
-  if (params.securityNvaEnabled !== false) {
+  // Multi-Vendor Security Tiers
+  if (params.externalFirewallDesc) {
+    selectedElements.push(`External Perimeter Firewall: ${params.externalFirewallDesc}`);
+  } else if (params.securityNvaEnabled !== false) {
     selectedElements.push(`Security Perimeter & NVA Hub (${params.nvaFirewall}, Web Application Firewall ${params.wafSolution})`);
+  }
+
+  if (params.internalFirewallDesc) {
+    selectedElements.push(`Internal Segmentation Firewall: ${params.internalFirewallDesc}`);
+  }
+
+  if (params.nsxDistributedFirewallDesc) {
+    selectedElements.push(`NSX Distributed Firewall: ${params.nsxDistributedFirewallDesc}`);
+  }
+
+  if (params.applicationPublishingDesc) {
+    selectedElements.push(`Application Publishing & Ingress Gateway: ${params.applicationPublishingDesc}`);
+  }
+
+  if (params.loadBalancingDesc) {
+    selectedElements.push(`Application Load Balancing Tier: ${params.loadBalancingDesc}`);
   }
 
   selectedElements.push(`Primary Cloud SDDC Platform (${params.trackTitle})`);
@@ -537,6 +751,10 @@ export function buildActivePromptString(params: {
 
   if (params.vdiEnabled) {
     selectedElements.push(`Virtual Desktops VDI cluster (${params.vdiPlatform || 'Azure Virtual Desktop'}) on dedicated platform pod`);
+  }
+
+  if (params.trafficFlowsSummary) {
+    selectedElements.push(`Verified Traffic Flow Controls: ${params.trafficFlowsSummary}`);
   }
 
   const drClause = params.drEnabled
@@ -563,8 +781,8 @@ ${componentsPrompt}
 
 Strict Visual & Connectivity Rules:
 - Render realistic, sleek 3D cloud and datacenter elements with clear component nameplate labels.
-- Represent Layer 2 extensions, interconnects, firewalls, NVAs, cloud-native services, VDI, and Disaster Recovery distinctly.
-- Keep security NVA and cloud-native services visually separated on their own dedicated platform tiers.
+- Represent Layer 2 extensions, interconnects, external firewalls, internal segmentation firewalls, NSX DFW, publishing platforms, load balancers, cloud-native services, VDI, and Disaster Recovery distinctly.
+- Keep external perimeter and internal segmentation firewalls on their own designated inspection planes.
 - Draw clean, direct illuminated network tubes or connection paths connecting only the components where connections are actually required.
 - Absolutely avoid decorative, unnecessary, duplicate, or tangled lines.
 - Include component names and labels, but DO NOT display configuration details, IP addresses, CIDRs, routing tables, or lengthy technical text in the illustration.

@@ -1,188 +1,187 @@
-# Zaboraa Enterprise Design Generator — Architecture-Aware Blueprint Studio
+# Multi-Vendor Firewall Architecture, Distributed Security & Traffic-Flow Studio
 
-A comprehensive overhaul of the Zaboraa Design Generator wizard, visual blueprint renderer, and administrative parameter controls. This implements a true step-by-step 5-stage architecture wizard with strict step isolation, robust Back/Continue navigation with state preservation, dynamic compatibility-driven vendor filtering, scroll-on-success viewport navigation, and a hardened Supabase Auth administrative governance model with all hardcoded credentials eliminated.
+An enterprise architectural specification and UI redesign for the Zaboraa Enterprise Architecture Designer. Introduces independent multi-vendor security layers (External/Perimeter Firewall, Internal/Segmentation Firewall, optional NSX Distributed Firewall, External Application Publishing including customer-configurable VAP, and Load Balancing with NSX LB / VMware Avi), an interactive 6-path traffic-flow editor, a two-column layout with a sticky Architecture Summary rail on desktop (collapsible on mobile), instant scroll-to-top on step transitions, and homepage hero whitespace compression.
 
 ---
 
 ### User Review & Critical Decisions
 
 > [!IMPORTANT]
-> The implementation plan has been revised based on your instructions. Please review the confirmed architectural decisions below:
+> Please review the core architectural decisions and design rules incorporated into this revised plan:
 
-- **Confirmed Decision 1 (Admin Security Hardening & Zero Hardcoded Credentials)**:
-  - Completely remove the hardcoded credentials display and autofill buttons (`admin@zaboraa.com` / `Zaboraa@123!`) from `AdminLoginModal.tsx`.
-  - Admin access will be authenticated exclusively via Supabase Auth (`supabase.auth.signInWithPassword`), with server-side / database profile verification (`profiles.role === 'admin'`) and RLS authorization.
-  - An idempotent SQL migration script will securely register and provision `admin@zaboraa.com` with the `admin` role in `public.profiles`.
-- **Confirmed Decision 2 (Scroll-on-Success Navigation)**:
-  - Generation trigger will **not** scroll immediately upon clicking "Generate 3D Blueprint".
-  - The viewport stays focused on the generation progress bar during processing.
-  - Only upon **successful generation confirmation** (`res.success === true` and image data received) will the page smoothly scroll to the rendered 3D Blueprint at the top of the canvas viewport on both desktop and mobile.
-- **Confirmed Decision 3 (True 5-Step Architecture Wizard)**:
-  - Strict step-by-step presentation (only the current active step is rendered in the DOM; steps 1–5 are never stacked together).
-  - Clean Back and Continue navigation buttons with field validation for required parameters.
-  - Advanced configuration panels default to collapsed accordions to keep the interface focused and scannable.
-- **Confirmed Decision 4 (8 Quick-Start Templates & 5 Core Hyperscalers)**:
-  - Exact templates: `VMware to AVS`, `VMware to NC2 on Azure`, `Nutanix to NC2 on Azure`, `VMware to GCVE`, `VMware to VMC on AWS`, plus `Hybrid Extension`, `Migration + DR`, and `Multi-cloud`.
-- **Confirmed Decision 5 (Compatibility-Driven Vendor Filtering & Stale State Clearing)**:
-  - Selection of a target platform or cloud template strictly filters incompatible services (e.g. AWS Transit Gateway is hidden/disabled for Azure AVS; HCX is hidden for pure Nutanix-to-Nutanix; Azure NetApp Files is scoped to Azure targets).
-  - Incompatible stale options are automatically cleared upon template or platform changes, with user feedback.
-- **Confirmed Decision 6 (Spacing & Layout Density Optimization)**:
-  - Compress excessive padding (reduce 80px/64px gaps to compact 24px–32px section spacing, tighten form field margins from `mb-6` to `mb-3`) without disrupting responsive touch targets.
+- **Confirmed Decision 1 (Independent Multi-Vendor Firewall Layers)**:
+  - Step 4 is restructured into separate, decoupled security controls:
+    1. **External / Perimeter Firewall**: Inspects north-south internet and public ingress/egress. Configured with independent vendor (*Palo Alto*, *Fortinet*, *Check Point*, *Azure Firewall*, *AWS Network Firewall*), model, HA model, and capacity.
+    2. **Internal / Segmentation Firewall**: Inspects internal tier-to-tier and cross-subnet traffic. Can use a completely different vendor from the external firewall (e.g., Palo Alto perimeter with Fortinet internal segmentation).
+    3. **NSX Distributed Firewall (DFW)**: Optional kernel-level microsegmentation enforced at the workload vNIC boundary, explicitly represented as distributed policy rather than a physical network hop.
+    4. **External Application Publishing Platform**: Supports the customer's configurable "VAP" product (or Citrix ADC, F5 BIG-IP, Azure Application Gateway), treated as a flexible unverified product name without hardcoded assumptions.
+    5. **Load Balancing Tier**: Selectable between VMware Avi (NSX Advanced Load Balancer), NSX Native Load Balancing, F5 BIG-IP, and cloud-native load balancers.
+  - Each layer supports status states: `Enabled (New)`, `Existing Infrastructure`, or `Not Applicable / Disabled`.
+  - Unlisted hardware or virtual models can be entered freely and tagged as `Unverified Specification` rather than inventing synthetic metrics.
+- **Confirmed Decision 2 (Interactive Traffic-Flow Modeling Editor)**:
+  - An interactive matrix allows architects to assign specific security controls to 6 core traffic vectors:
+    1. *Internet Ingress & Egress*
+    2. *Internal Application-to-Application*
+    3. *East-West Workload Traffic*
+    4. *Management & Shared-Services*
+    5. *Hybrid / On-Premises Interconnect*
+    6. *Published Application Traffic*
+  - The diagram renderer consumes this flow model directly—never automatically forcing every packet through both firewalls.
+- **Confirmed Decision 3 (Instant Jump to Top on Step Transition)**:
+  - Clicking Next, Continue, or Back instantly snaps the viewport (`behavior: 'instant'`) to the top of the wizard container (`wizardTopRef`), ensuring the architect immediately views the title and top parameters.
+- **Confirmed Decision 4 (Sticky Desktop Architecture Summary Rail & Collapsible Mobile Drawer)**:
+  - Desktop layout utilizes a two-column grid (`lg:col-span-8` main parameter stage + `lg:col-span-4` sticky right rail).
+  - The summary rail updates live as selections change, displaying active vendors, computed capacity, network topology, traffic-flow inspection assignments, and blocking warnings.
+- **Confirmed Decision 5 (Homepage Hero Vertical Whitespace Tightening)**:
+  - Tightens top padding on `src/components/Hero.tsx` from `pt-12 lg:pt-20` down to `pt-4 sm:pt-6 lg:pt-8` to eliminate the whitespace gap beneath the navigation bar.
 
 ---
 
 ### 1. Overview & Core Concept
 
-- **What It Does**: An enterprise cloud architecture workbench that guides solution architects through 5 structured stages to define their target cloud posture, automatically enforces vendor compatibility rules, and renders a photorealistic 3D architecture blueprint and 4K vector schematic illustrating only the selected components and verified network interconnects.
-- **Target Audience / Persona**: Lead Cloud Architects, Principal Infrastructure Engineers, and Enterprise IT Directors planning VMware and Nutanix migrations across Azure, AWS, and Google Cloud.
-- **Key Value**: Delivers accurate, boardroom-ready architecture schematics and Bills of Materials (BOM) in minutes, ensuring zero incompatible or hallucinated network connections.
+- **What It Does**: Provides enterprise cloud architects with a multi-layered security and network design workbench. Accommodates real-world enterprise topologies where perimeter security, internal zone segmentation, distributed microsegmentation, web publishing, and load balancing are governed by distinct vendors and service-chaining rules.
+- **Target Persona**: Principal Cloud Security Architects, Network Infrastructure Engineers, and Enterprise Security Directors designing hybrid VMware (AVS, NC2, GCVE, VMC) and Nutanix estates.
+- **Key Value**: Delivers customer-accurate security blueprints with verified traffic-inspection paths, eliminating arbitrary vendor bundling or hallucinated double-firewall hops.
 
 ---
 
 ### 2. User Experience & Visual Design
 
-#### True 5-Stage Wizard Workflow
-Each stage is displayed in isolation with an indicator bar showing completion status, estimated time, and active breadcrumb:
-
+#### Workspace Layout (Two-Column Desktop + Collapsible Mobile)
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  Quick-Start Templates: [VMware→AVS] [VMware→NC2] [Nutanix→NC2] [GCVE] [VMC] │
+│  Quick-Start Templates: [AVS Gen 2] [NC2 Azure] [Nutanix Native] [GCVE] [VMC]│
 ├─────────────────────────────────────────────────────────────────────────────┤
-│  [Step 1: Objective] ── [Step 2: Source] ── [Step 3: Landing Zone & VDI]    │
-│                     ── [Step 4: Security & WAF] ── [Step 5: Target & DR]    │
+│  Compact Stepper: [01 Objective]─[02 Source]─[03 LZ & VDI]─[04 Security]─[05 Target]
 ├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│                     CURRENT ACTIVE STEP VIEWPORT ONLY                       │
-│                                                                             │
-│  [Required Fields]                                                          │
-│  ▸ Advanced Parameters (Collapsed Accordion)                                │
-│                                                                             │
+│  <div ref={wizardTopRef} />                                                 │
+│  ┌──────────────────────────────────────────────┬────────────────────────┐  │
+│  │ Main Parameter Stage (lg:col-span-8)         │ Architecture Summary   │  │
+│  │                                              │ Rail (lg:col-span-4)   │  │
+│  │  - Active Step Isolated in Viewport          │ [Sticky Top-20]        │  │
+│  │  - Mandatory fields visible by default       ├────────────────────────┤  │
+│  │  - Collapsible optional parameter accordions │ Live Security State:   │  │
+│  │  - Step 4: 5 Separate Security Tiers         │ • Perimeter: Palo Alto │  │
+│  │  - Step 4: Traffic-Flow Matrix Editor        │ • Internal: Fortinet   │  │
+│  │                                              │ • NSX DFW: Active (L7) │  │
+│  │  [ ← Back ]                   [ Continue → ] │ • Publisher: VAP       │  │
+│  │                                              │ • Load Balancer: Avi   │  │
+│  │                                              │ ────────────────────── │  │
+│  │                                              │ Blockers: 0 Warnings   │  │
+│  └──────────────────────────────────────────────┴────────────────────────┘  │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│  [ ← Back ]                                                 [ Continue → ]  │
+│  Generation Action Center (Scrolls to 3D Blueprint on Success)              │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-1. **Step 1 — Architectural Objective**:
-   - Required: Architecture Objective (*Migration Only*, *Extend Production*, *Setup DR*, *Migrate & Setup DR*), Deployment Scope (*Single Cloud*, *Hybrid*, *Multi-Cloud*).
-   - Collapsed/Optional: Migration Strategy (*Rehost*, *Replatform*, *Modernize*), Workload Criticality, Downtime Tolerance.
-2. **Step 2 — Existing / Source Infrastructure**:
-   - Required: Source Provider (*On-Premises*, *Azure*, *AWS*, *GCP*), Source Platform (*VMware vSphere*, *Nutanix AOS/AHV*, *Hyper-V*, *Bare Metal*), Site Count, Management CIDR.
-   - Conditional: Hypervisor Version, VM Count, Storage/Compute inventory, Existing L2 Extension.
-3. **Step 3 — Landing Zone, Cloud-Native Services & VDI**:
-   - Part A (Landing Zone Foundation): Target Provider, Region, Network Topology (*Virtual WAN*, *Transit Gateway*, *Hub-and-Spoke*), SDDC Management CIDR.
-   - Part B (Cloud-Native Services): Categorized independent toggles (Azure NetApp Files, FSx ONTAP, Google NetApp Volumes, Private Link, Native SQL).
-   - Part C (VDI Services): Optional VDI toggle (*Azure Virtual Desktop*, *Citrix DaaS*, *Horizon Cloud*), user concurrency sizing.
-4. **Step 4 — Security, Firewalls, WAF & NVA**:
-   - Part A (Firewall Topology): Central Hub vs Distributed, NVA Vendor (*Azure Firewall*, *Palo Alto Networks*, *Fortinet FortiGate*, *AWS Network Firewall*), Traffic Inspection Mode (North-South, East-West).
-   - Part B (WAF): Managed Web Application Firewall, DDoS Protection level.
-5. **Step 5 — Target Infrastructure, Production/DR & Migration Tools**:
-   - Part A (Target SDDC): Target Platform (*AVS*, *NC2 on Azure*, *GCVE*, *VMC on AWS*), Node Class/SKU, Cluster Node Count, Storage Attachment.
-   - Part B (Production & DR): DR Engine (*VMware SRM*, *Nutanix Leap/Metro*, *Azure Site Recovery*, *Zerto*), RPO/RTO validation.
-   - Part C (Migration Tools): Scenario-matched migration engine (*VMware HCX*, *Nutanix Move*, *Azure Migrate*).
-   - Part D (Layer 2 Interconnect): Dedicated Interconnect type (*ExpressRoute*, *DirectConnect*, *Cloud Interconnect*, *IPsec VPN*), bandwidth sizing, optional HCX Network Extension toggle.
-
-#### Generation Telemetry & Post-Generation Scroll
-- When the user clicks **Generate 3D Blueprint**, the wizard enters an in-place loading state with real-time progress phases:
-  - `Phase 1 (0-25%)`: Validating multi-tier CIDRs and interconnect paths.
-  - `Phase 2 (25-60%)`: Synthesizing architecture-grounded prompt (zero hallucinated connections).
-  - `Phase 3 (60-90%)`: Calling server-side Gemini API for 3D isometric rendering.
-  - `Phase 4 (90-100%)`: Assembling architectural legend and BOM manifest.
-- **Scroll Execution**: Upon `res.success === true`, `window.scrollTo({ top: blueprintCanvasOffset, behavior: 'smooth' })` smoothly brings the newly rendered 3D Blueprint and export dock into full view.
-
----
-
-### 3. Compatibility Rules & Vendor Filtering Matrix
-
-A centralized rules catalog (`src/utils/architectureCompatibilityRules.ts`) enforces valid combinations and automatically sanitizes stale state:
-
-| Target Platform | Allowed Migration Tools | Compatible Storage | Compatible NVA / Firewalls | Compatible Interconnect |
-| :--- | :--- | :--- | :--- | :--- |
-| **Azure AVS** | VMware HCX, Azure Migrate | Azure NetApp Files, Managed Disks | Azure Firewall, Palo Alto, Fortinet | ExpressRoute, Azure vWAN, Global Reach |
-| **Nutanix NC2 on Azure** | Nutanix Move, Leap, Commvault | Native Nutanix DSF, Azure Blob | Azure Firewall, Fortinet, Palo Alto | Azure ExpressRoute, Azure VNet Peering |
-| **Google Cloud GCVE** | VMware HCX, G/C Migrate | Google Cloud NetApp Volumes | Cloud Firewall, Palo Alto VM-Series | Dedicated Interconnect, Partner Interconnect |
-| **AWS VMC** | VMware HCX, AWS MGN | AWS FSx for NetApp ONTAP | AWS Network Firewall, Fortinet | Direct Connect, AWS Transit Gateway |
-
-- **Stale Value Clearing**: When switching from `VMware to AVS` to `Nutanix to NC2 on Azure`, HCX is cleared and replaced with `Nutanix Move`; Azure NetApp Files is cleared if migrating to AWS VMC; any incompatible CIDR or attachment is flagged with an inline dismissal banner.
+#### Step 4 Redesign: Multi-Vendor Security & Traffic-Flow Studio
+1. **Tier 1: External / Perimeter Firewall**:
+   - Status: `Enabled (New)`, `Existing External Firewall`, `Not Applicable`.
+   - Conditional Fields: Vendor (*Palo Alto Networks*, *Fortinet*, *Check Point*, *Azure Firewall Premium*, *AWS Network Firewall*, *Custom / Enter Unlisted*), Model SKU (e.g. PA-3410, FortiGate 200F, or freeform unverified model), Deployment Mode (*Managed Service*, *Active/Active ECMP NVA*, *Active/Passive with Floating IP*), Inspected Throughput.
+2. **Tier 2: Internal / Segmentation Firewall**:
+   - Status: `Enabled (New)`, `Existing Segmentation Firewall`, `Not Applicable`.
+   - Independent Vendor: Allows mixing vendors (e.g., Fortinet internal segmentation behind Palo Alto perimeter).
+   - Independent Model SKU, HA mode, and placement (Dedicated transit hub vNet vs workload edge).
+3. **Tier 3: NSX Distributed Firewall (DFW)**:
+   - Status: `Enabled (Distributed Workload Enforcement)` vs `Disabled`.
+   - Scope: Kernel-level microsegmentation, L7 Application ID inspection, Distributed IDS/IPS, FQDN filtering.
+   - Visual Treatment: Illustrated as policy perimeters wrapped directly around workload pods, not as an in-line physical gateway.
+4. **Tier 4: External Application Publishing (VAP / Reverse Proxy)**:
+   - Status: `Enabled` vs `Disabled`.
+   - Product Selection: Configurable text/select input defaulting to customer's `"VAP Platform"` with options for *Citrix ADC (NetScaler)*, *F5 BIG-IP APM*, *Azure Application Gateway*, *Cloudflare Access*. Tagged as unverified if custom.
+   - Publishing Mode: Reverse Proxy, SSL Offloading, SAML/OIDC Pre-authentication.
+5. **Tier 5: Load Balancing Tier**:
+   - Status: `Enabled` vs `Disabled`.
+   - Engine: *VMware Avi (NSX Advanced Load Balancer)*, *NSX Native Load Balancer (Tier-1)*, *F5 BIG-IP LTM*, *Cloud-Native Load Balancer (Azure ALB / AWS ALB)*.
+   - Service Chaining: Option to consolidate with the Application Publishing tier if the same product is used (e.g. F5 BIG-IP performing both VAP and LTM).
+6. **Traffic-Flow Matrix Editor**:
+   - Clean, compact configuration grid mapping which tier inspects which vector:
+     | Traffic Vector | Primary Inspection Control | Secondary Inspection | Bypass / Direct |
+     | :--- | :--- | :--- | :--- |
+     | **Internet Ingress** | External Perimeter Firewall | App Publisher (VAP) | No |
+     | **Internet Egress** | External Perimeter Firewall | — | No |
+     | **East-West Workload** | NSX Distributed Firewall | Internal Segmentation FW | Workload vNet |
+     | **App-to-App Tier** | Internal Segmentation Firewall | NSX DFW | Subnet Peering |
+     | **Hybrid / On-Prem** | Internal Segmentation Firewall | — | Dedicated Circuit |
+     | **Published Apps** | App Publisher (VAP) | Load Balancer (Avi) | External Ingress |
 
 ---
 
-### 4. Admin Parameter Control Studio & Security Architecture
+### 3. Architecture Blueprint & 4K Schematic Synthesis
 
-#### Security Hardening (Zero Hardcoded Credentials)
-- **Delete Hardcoded Admin Credentials**: Remove default credential text and autofill buttons from `AdminLoginModal.tsx`.
-- **Supabase Authentication**:
-  - Sign-in relies entirely on `supabase.auth.signInWithPassword({ email, password })`.
-  - Database-backed role checks:
-    ```sql
-    -- Provision dedicated admin user
-    UPDATE public.profiles
-    SET role = 'admin', subscription_tier = 'enterprise'
-    WHERE email = 'admin@zaboraa.com';
-    ```
-  - Client state checks verify session JWT against Supabase Auth before unlocking customizer controls.
-
-#### Admin Parameter Studio Features
-- Located in the Customizer Drawer under the **Parameter Studio** tab:
-  - Toggle required/optional/conditional status for any wizard field.
-  - Enable/disable individual templates or cloud destinations.
-  - Persist modifications to Supabase table `admin_parameter_controls` with fallback to versioned local storage.
-  - "Reset to Factory Defaults" button to restore canonical architecture definitions.
+The 3D Gemini blueprint prompt and 2D vector schematic will consume the concrete security and flow model:
+- **Perimeter Tube**: Drawn from the Internet gateway through the External Firewall into the DMZ / Transit Hub.
+- **Internal Transit Tube**: Connects the Transit Hub to the SDDC compute clusters through the Internal Firewall only when internal inspection is active.
+- **Distributed Shield Nodes**: NSX DFW is rendered as holographic shield auras encompassing VM workload clusters rather than a blocking middlebox.
+- **Publishing & Ingress Pods**: Renders the Application Publishing tier (e.g. VAP) and Load Balancer (e.g. Avi) as distinct front-end gateway nodes before passing traffic to backend workload pools.
+- **Validation Engine**: Flags anomalies (e.g., Published application traffic enabled without an ingress firewall or publisher; NSX DFW enabled on non-NSX bare metal).
 
 ---
 
-### 5. Technical Architecture & File Modifications
+### 4. Technical Architecture & File Updates
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                            DesignGeneratorPage.tsx                          │
+│                           WizardState Data Model                            │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│  Quick-Start Template Selector (8 Cards)                                    │
-│  WizardStepTabs (Steps 1 through 5)                                         │
-│                                                                             │
-│  [Step 1: Objective]       (components/wizard/Step1SelectObjective.tsx)     │
-│  [Step 2: Source]          (components/wizard/Step2SourceInfrastructure.tsx)│
-│  [Step 3: Landing Zone]    (components/wizard/Step3LandingZoneAndVDI.tsx)   │
-│  [Step 4: Security & WAF]  (components/wizard/Step4SecurityAndWAF.tsx)      │
-│  [Step 5: Target & DR]     (components/wizard/Step5TargetAndDR.tsx)         │
-│                                                                             │
-│  Generation Action Center  (components/wizard/BlueprintStudioViewport.tsx)  │
-│    - Smooth scroll target ref                                               │
-│    - Dual-Mode: 3D Isometric View + 4K Vector Schematic                     │
-│    - Session revision history strip                                         │
-│    - Export Hub: 4K PNG, BOM Excel, Topology JSON, Executive PDF            │
+│  wizardState.securityConfig:                                                │
+│   ├── perimeterFirewall: { enabled, status, vendor, model, haMode, isCustom}│
+│   ├── internalFirewall:  { enabled, status, vendor, model, haMode, isCustom}│
+│   ├── nsxDistributedFirewall: { enabled, idsIpsEnabled, l7AppIdEnabled }    │
+│   ├── appPublishing:     { enabled, productName, mode, isCustomProduct }    │
+│   ├── loadBalancing:     { enabled, platform, consolidatedWithPublishing }  │
+│   └── trafficFlows:                                                         │
+│        ├── internetIngress: ['perimeter', 'publishing']                     │
+│        ├── internetEgress:  ['perimeter']                                   │
+│        ├── eastWest:        ['nsx-dfw']                                     │
+│        ├── internalAppToApp:['internal-fw', 'nsx-dfw']                      │
+│        ├── hybridTransit:   ['internal-fw']                                 │
+│        └── publishedTraffic:['publishing', 'load-balancer']                 │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-#### Core Files to Update:
-1. `src/components/AdminLoginModal.tsx`: Strip all hardcoded credentials and autofill buttons; reinforce authentic Supabase Auth with server-side role validation.
-2. `src/pages/tools/DesignGeneratorPage.tsx`: Implement true step isolation (1 to 5), smooth scroll strictly after generation success, spacing compression, and integration with the parameter catalogue.
-3. `src/components/wizard/`:
-   - `Step1SelectObjective.tsx`: Objective, scope, and criticality.
-   - `Step2SourceInfrastructure.tsx`: Source hypervisor, version, host count, and management CIDR.
-   - `Step3LandingZoneAndVDI.tsx`: Cloud foundation, regional services, and VDI options.
-   - `Step4SecurityAndWAF.tsx`: NVA firewall placement, WAF, and traffic inspection.
-   - `Step5TargetAndDR.tsx`: Target SDDC, sizing, HCX/Move migration tools, and L2 interconnect.
-   - `BlueprintStudioViewport.tsx`: High-resolution canvas with zoom/pan, layer badges, and scroll-to anchor.
-4. `src/utils/architectureCompatibilityRules.ts`: Shared compatibility validation and stale selection clearing functions.
-5. `src/utils/adminParameterControls.ts`: Persisted admin controls for mandatory/optional fields and template publishing.
-6. `src/tests/architectureCalculations.test.ts`: Automated regression tests for vendor filtering, template loading, and calculations.
+#### Detailed File Modifications:
+1. `src/types/wizardStateAdapter.ts`:
+   - Extend `WizardState` with decoupled `perimeterFirewall`, `internalFirewall`, `nsxDistributedFirewall`, `appPublishing`, `loadBalancing`, and `trafficFlows`.
+   - Update default factory and legacy state mapping to guarantee backwards compatibility.
+2. `src/utils/architectureCompatibilityRules.ts`:
+   - Add catalog of verified firewall models for Palo Alto, Fortinet, Check Point, Cisco, and cloud-native firewalls.
+   - Add compatibility checks for NSX LB vs Avi Networks and external publishing platforms.
+   - Add traffic flow path validation (e.g., verifying that internet-bound traffic passes through an active firewall).
+3. `src/components/wizard/Step4SecurityAndWAF.tsx`:
+   - Redesign into 5 collapsible tier panels (Perimeter FW, Internal FW, NSX DFW, App Publishing VAP, Load Balancing) with progressive disclosure.
+   - Add the Traffic-Flow Matrix Editor with intuitive dropdowns.
+4. `src/components/wizard/ArchitectureSummaryRail.tsx`:
+   - Display real-time security posture: Perimeter Vendor, Internal Vendor, DFW status, Publisher name, and Load Balancer engine.
+   - Display live capacity metrics (vCPU, RAM, storage) and unresolved blockers.
+5. `src/pages/tools/DesignGeneratorPage.tsx`:
+   - Integrate `wizardTopRef` with `behavior: 'instant'` on step transitions.
+   - Mount `ArchitectureSummaryRail` in a 2-column grid (`lg:col-span-8` + `lg:col-span-4`).
+   - Feed decoupled firewall tiers and traffic paths into `buildIsometricDiagramPrompt` and 4K vector visual spec.
+6. `src/components/Hero.tsx`:
+   - Reduce top padding from `pt-12 lg:pt-20` down to `pt-4 sm:pt-6 lg:pt-8`.
+7. `src/tests/wizardAndCompatibility.test.ts`:
+   - Add comprehensive tests for independent perimeter/internal firewall vendors, NSX DFW toggles, VAP publishing, Avi vs NSX LB, and traffic-flow path validation.
 
 ---
 
-### 6. Verification & Test Plan
+### 5. Verification & Test Plan
 
-1. **Step Isolation & Navigation Verification**:
-   - Verify only the current step is visible.
-   - Verify Back and Continue buttons preserve all user inputs and prevent advancing when required fields are empty.
-2. **Scroll-on-Success Verification**:
-   - Verify that clicking "Generate 3D Blueprint" does **not** prematurely scroll down.
-   - Verify that upon API response success, the viewport smoothly scrolls to the rendered 3D Blueprint on desktop and mobile.
-3. **Vendor Filtering & Stale State Clearing**:
-   - Test switching from `VMware to AVS` to `Nutanix to NC2 on Azure`: verify HCX and ANF are cleared and replaced with compatible Nutanix Move and Azure Blob options.
-   - Test AWS VMC template: verify AWS Transit Gateway and FSx ONTAP appear, while Azure-only services remain excluded.
-4. **Admin Security & Authentication Verification**:
-   - Verify zero hardcoded passwords or emails appear in `AdminLoginModal.tsx`.
-   - Verify sign-in requires valid Supabase credentials and rejects non-admin users.
-5. **Layout Spacing Verification**:
-   - Inspect container heights and padding across mobile (375px), tablet (768px), and desktop (1440px) to confirm reduced whitespace and zero horizontal overflow.
-6. **Automated Vitest Suite**: Run `npm test` to confirm all architecture calculations and compatibility rules pass cleanly.
+1. **Multi-Vendor Firewall Tests**:
+   - Verify Perimeter Firewall set to Palo Alto while Internal Firewall set to Fortinet.
+   - Verify Perimeter Firewall enabled while Internal is disabled, and vice versa.
+   - Verify unlisted/custom firewall models preserve `isCustom: true` and are flagged as unverified without crashing.
+2. **NSX DFW & App Publishing Tests**:
+   - Verify NSX DFW enabled adds distributed policy tags without adding a physical hop in the interconnect link table.
+   - Verify customer's configurable VAP product name is persisted and rendered in the manifest.
+   - Verify NSX LB and VMware Avi options render appropriate compatible target pairings.
+3. **Traffic-Flow Validation Tests**:
+   - Verify traffic-flow editor assignments correctly guide the prompt and schematic synthesis.
+   - Verify validation errors when internet ingress is active without any perimeter firewall or publishing gateway.
+4. **Navigation & UI Ergonomics**:
+   - Verify clicking Next/Continue instantly jumps to `wizardTopRef` at the top of the container.
+   - Verify sticky summary rail updates immediately upon selecting security options.
+   - Verify homepage hero section has no excessive empty whitespace beneath the navbar.
+5. **Automated Suite**:
+   - Execute `npm test -- --run` to confirm all existing and new tests pass.
+   - Execute `tsc --noEmit` and `npm run build` to verify clean compilation.

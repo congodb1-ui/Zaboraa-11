@@ -184,6 +184,11 @@ export function buildTrackVisualSpec(
     targetNodeSku?: string;
     targetNodeCount?: number;
     sddcMgmtCidr?: string;
+    externalFw?: { status: string; vendor: string; model: string; throughputGbps: number; deploymentMode: string };
+    internalFw?: { status: string; vendor: string; model: string; throughputGbps: number; deploymentMode: string };
+    nsxDfw?: { enabled: boolean; version: string; policyMode: string };
+    applicationPublishing?: { enabled: boolean; platformName: string };
+    loadBalancing?: { enabled: boolean; platform: string };
   }
 ): TrackVisualSpec {
   const src = p.sourceEnv || {
@@ -208,6 +213,28 @@ export function buildTrackVisualSpec(
   };
   const rpoText = p.drRpoMinutes === 0 ? '0-min Sync (Zero Data Loss)' : `${p.drRpoMinutes}-min RPO`;
   const storageText = p.decoupledStorageTB > 0 ? `${p.decoupledStorageTB} TB ${p.externalStorageName}` : 'All-Flash Local NVMe';
+
+  const securityBullets: string[] = [];
+  if (p.externalFw && p.externalFw.status !== 'not-applicable') {
+    securityBullets.push(`• Edge FW: ${p.externalFw.vendor} ${p.externalFw.model} (${p.externalFw.throughputGbps}G)`);
+  } else {
+    securityBullets.push(`• Perimeter NVA: ${p.nvaFirewall}`);
+  }
+  if (p.internalFw && p.internalFw.status !== 'not-applicable') {
+    securityBullets.push(`• Transit FW: ${p.internalFw.vendor} ${p.internalFw.model} (${p.internalFw.throughputGbps}G)`);
+  }
+  if (p.nsxDfw?.enabled) {
+    securityBullets.push(`• NSX DFW: ${p.nsxDfw.version} (Microsegmentation)`);
+  }
+  if (p.applicationPublishing?.enabled) {
+    securityBullets.push(`• Ingress / VAP: ${p.applicationPublishing.platformName.split(' (')[0]}`);
+  }
+  if (p.loadBalancing?.enabled) {
+    securityBullets.push(`• Load Balancing: ${p.loadBalancing.platform.split(' (')[0]}`);
+  }
+  if (securityBullets.length < 4) {
+    securityBullets.push(`• Web App Firewall: ${p.wafSolution}`);
+  }
 
   switch (templateId) {
     case 'nutanix-onprem':
@@ -261,13 +288,8 @@ export function buildTrackVisualSpec(
           ]
         },
         panel2Box3: {
-          title: 'Perimeter NVA Firewall & WAF',
-          bullets: [
-            `• NVA Firewall: ${p.nvaFirewall}`,
-            `• Web Application Firewall: ${p.wafSolution}`,
-            '• Deep Packet Inspection (DPI) & Threat Prevention',
-            '• Egress Internet Breakout & Zero-Trust Inspection'
-          ]
+          title: 'Perimeter Security & NVA Tiers',
+          bullets: securityBullets
         },
         panel3Header: '03. SECONDARY NUTANIX DR & OBJECTS SITE',
         panel3Box1: {
@@ -351,12 +373,7 @@ export function buildTrackVisualSpec(
         },
         panel2Box3: {
           title: 'Perimeter Security & NVA Inspection',
-          bullets: [
-            `• NVA Firewall: ${p.nvaFirewall}`,
-            `• Web Application Firewall: ${p.wafSolution}`,
-            '• Azure DDoS Protection & Egress Inspection',
-            '• Zero-Trust North-South Microsegmentation'
-          ]
+          bullets: securityBullets
         },
         panel3Header: '03. NUTANIX CLOUD CLUSTERS (NC2) ON AZURE',
         panel3Box1: {
@@ -440,12 +457,7 @@ export function buildTrackVisualSpec(
         },
         panel2Box3: {
           title: 'Transit Inspection & Security',
-          bullets: [
-            `• Migration Security NVA: ${p.nvaFirewall}`,
-            `• Web Application Firewall: ${p.wafSolution}`,
-            '• Encrypted TLS In-Transit Replication',
-            '• Egress Wave Traffic Shaper & QoS'
-          ]
+          bullets: securityBullets
         },
         panel3Header: '03. TARGET NUTANIX NC2 ON AZURE',
         panel3Box1: {
@@ -529,12 +541,7 @@ export function buildTrackVisualSpec(
         },
         panel2Box3: {
           title: 'NVA Firewall & Perimeter WAF',
-          bullets: [
-            `• NVA Firewall: ${p.nvaFirewall}`,
-            `• Web Application Firewall: ${p.wafSolution}`,
-            '• Deep Packet Inspection (DPI) & IPS/IDS',
-            '• Egress Internet Breakout & Zero-Trust Inspection'
-          ]
+          bullets: securityBullets
         },
         panel3Header: '03. AZURE VMWARE SOLUTION SDDC CORE',
         panel3Box1: {
@@ -618,12 +625,7 @@ export function buildTrackVisualSpec(
         },
         panel2Box3: {
           title: 'AWS Network Firewall & Security',
-          bullets: [
-            `• Next-Gen Firewall: ${p.nvaFirewall}`,
-            `• Web Application Firewall: ${p.wafSolution}`,
-            '• AWS Shield DDoS Mitigation & Route 53 Resolver',
-            '• Egress Internet Breakout via NAT Gateways'
-          ]
+          bullets: securityBullets
         },
         panel3Header: '03. VMWARE CLOUD ON AWS SDDC CORE',
         panel3Box1: {
@@ -707,12 +709,7 @@ export function buildTrackVisualSpec(
         },
         panel2Box3: {
           title: 'Cloud Armor & Perimeter Security',
-          bullets: [
-            `• Next-Gen Firewall: ${p.nvaFirewall}`,
-            `• Web Application Firewall: ${p.wafSolution}`,
-            '• Google Cloud Armor Adaptive Threat Protection',
-            '• Private Service Connect (PSC) Endpoints'
-          ]
+          bullets: securityBullets
         },
         panel3Header: '03. GOOGLE CLOUD VMWARE ENGINE SDDC',
         panel3Box1: {
@@ -1845,7 +1842,24 @@ export const DesignGeneratorPage: React.FC = () => {
       targetPlatform: wizardState.targetPlatform,
       targetNodeSku: wizardState.targetNodeSku,
       targetNodeCount: wizardState.targetNodeCount,
-      sddcMgmtCidr: wizardState.sddcMgmtCidr
+      sddcMgmtCidr: wizardState.sddcMgmtCidr,
+      externalFw: wizardState.externalFirewall ? {
+        status: wizardState.externalFirewall.status,
+        vendor: wizardState.externalFirewall.vendor,
+        model: wizardState.externalFirewall.isCustomModel ? (wizardState.externalFirewall.customModelName || 'Custom') : wizardState.externalFirewall.model,
+        throughputGbps: wizardState.externalFirewall.throughputGbps,
+        deploymentMode: wizardState.externalFirewall.deploymentMode
+      } : undefined,
+      internalFw: wizardState.internalFirewall ? {
+        status: wizardState.internalFirewall.status,
+        vendor: wizardState.internalFirewall.vendor,
+        model: wizardState.internalFirewall.isCustomModel ? (wizardState.internalFirewall.customModelName || 'Custom') : wizardState.internalFirewall.model,
+        throughputGbps: wizardState.internalFirewall.throughputGbps,
+        deploymentMode: wizardState.internalFirewall.deploymentMode
+      } : undefined,
+      nsxDfw: wizardState.nsxDistributedFirewall,
+      applicationPublishing: wizardState.applicationPublishing,
+      loadBalancing: wizardState.loadBalancing
     });
 
     // 2. Blueprint Title Header Box
@@ -2036,8 +2050,43 @@ export const DesignGeneratorPage: React.FC = () => {
       { Category: 'Storage', Metric: 'Decoupled External Storage', Specification: `${decoupledStorageTB} TB (${externalStorageName})` },
       { Category: 'Workloads', Metric: 'Protected Virtual Machines', Specification: `${totalVMCount} VMs` },
       { Category: 'Networking', Metric: 'Physical Interconnect', Specification: connectivity },
-      { Category: 'Security', Metric: 'Next-Gen Firewall', Specification: nvaFirewall },
-      { Category: 'Security', Metric: 'Web Application Firewall', Specification: wafSolution },
+      // Enterprise Multi-Vendor Security Tiers
+      {
+        Category: 'Security (Edge)',
+        Metric: 'External Perimeter Firewall',
+        Specification: wizardState.externalFirewall?.status !== 'not-applicable'
+          ? `${wizardState.externalFirewall.vendor} ${wizardState.externalFirewall.isCustomModel ? (wizardState.externalFirewall.customModelName || 'Custom') : wizardState.externalFirewall.model} (${wizardState.externalFirewall.throughputGbps} Gbps, ${wizardState.externalFirewall.deploymentMode})`
+          : 'Not Applicable'
+      },
+      {
+        Category: 'Security (Transit)',
+        Metric: 'Internal Segmentation Firewall',
+        Specification: wizardState.internalFirewall?.status !== 'not-applicable'
+          ? `${wizardState.internalFirewall.vendor} ${wizardState.internalFirewall.isCustomModel ? (wizardState.internalFirewall.customModelName || 'Custom') : wizardState.internalFirewall.model} (${wizardState.internalFirewall.throughputGbps} Gbps, ${wizardState.internalFirewall.deploymentMode})`
+          : 'Not Applicable'
+      },
+      {
+        Category: 'Security (Microseg)',
+        Metric: 'NSX Distributed Firewall',
+        Specification: wizardState.nsxDistributedFirewall?.enabled
+          ? `${wizardState.nsxDistributedFirewall.version} (${wizardState.nsxDistributedFirewall.policyMode}, IDPS: ${wizardState.nsxDistributedFirewall.idpsEnabled ? 'Enabled' : 'Disabled'})`
+          : 'Disabled'
+      },
+      {
+        Category: 'Security (Ingress)',
+        Metric: 'External App Publishing (VAP)',
+        Specification: wizardState.applicationPublishing?.enabled
+          ? `${wizardState.applicationPublishing.platformName} (${wizardState.applicationPublishing.ingressMode}, Port ${wizardState.applicationPublishing.publishingPort} ${wizardState.applicationPublishing.protocol})`
+          : 'Disabled'
+      },
+      {
+        Category: 'Security (ADC)',
+        Metric: 'Application Load Balancer',
+        Specification: wizardState.loadBalancing?.enabled
+          ? `${wizardState.loadBalancing.platform} (${wizardState.loadBalancing.algorithm}, SSL Offload: ${wizardState.loadBalancing.sslOffloading ? 'Yes' : 'No'})`
+          : 'Disabled'
+      },
+      { Category: 'Security (WAF)', Metric: 'Web Application Firewall', Specification: wafSolution },
       { Category: 'Disaster Recovery', Metric: 'Replication Engine', Specification: drEngine },
       { Category: 'Disaster Recovery', Metric: 'Target RPO SLA', Specification: `${drRpoMinutes} Minutes` },
       { Category: 'Disaster Recovery', Metric: 'Target RTO SLA', Specification: `${drRtoMinutes} Minutes` }
@@ -2082,6 +2131,30 @@ export const DesignGeneratorPage: React.FC = () => {
       ? `${decoupledStorageTB} TB external decoupled ${externalStorageName} storage datastores`
       : 'No external decoupled storage configured (100% all-flash local NVMe)';
 
+    const extFwDesc = wizardState.externalFirewall && wizardState.externalFirewall.status !== 'not-applicable'
+      ? `${wizardState.externalFirewall.vendor} ${wizardState.externalFirewall.isCustomModel ? (wizardState.externalFirewall.customModelName || 'Custom Model') : wizardState.externalFirewall.model} (${wizardState.externalFirewall.throughputGbps} Gbps, ${wizardState.externalFirewall.deploymentMode})`
+      : undefined;
+
+    const intFwDesc = wizardState.internalFirewall && wizardState.internalFirewall.status !== 'not-applicable'
+      ? `${wizardState.internalFirewall.vendor} ${wizardState.internalFirewall.isCustomModel ? (wizardState.internalFirewall.customModelName || 'Custom Model') : wizardState.internalFirewall.model} (${wizardState.internalFirewall.throughputGbps} Gbps, ${wizardState.internalFirewall.deploymentMode})`
+      : undefined;
+
+    const nsxDfwDesc = wizardState.nsxDistributedFirewall?.enabled
+      ? `NSX Distributed Firewall ${wizardState.nsxDistributedFirewall.version} (${wizardState.nsxDistributedFirewall.policyMode})`
+      : undefined;
+
+    const appPublishingDesc = wizardState.applicationPublishing?.enabled
+      ? `${wizardState.applicationPublishing.platformName} (${wizardState.applicationPublishing.ingressMode} on port ${wizardState.applicationPublishing.publishingPort})`
+      : undefined;
+
+    const loadBalancingDesc = wizardState.loadBalancing?.enabled
+      ? `${wizardState.loadBalancing.platform} (${wizardState.loadBalancing.algorithm})`
+      : undefined;
+
+    const trafficSummary = wizardState.trafficFlows && wizardState.trafficFlows.length > 0
+      ? wizardState.trafficFlows.map(f => `${f.flowName} [${f.bypassInspection ? 'UNINSPECTED BYPASS' : f.inspectingControls.join(', ')}]`).join('; ')
+      : undefined;
+
     return buildActivePromptString({
       trackTitle,
       customerName,
@@ -2108,7 +2181,13 @@ export const DesignGeneratorPage: React.FC = () => {
       cloudNativeServices: wizardState.cloudNativeConfig?.selectedServices,
       vdiEnabled: wizardState.vdiEnabled,
       vdiPlatform: wizardState.vdiConfig?.platform,
-      objective: wizardState.objective
+      objective: wizardState.objective,
+      externalFirewallDesc: extFwDesc,
+      internalFirewallDesc: intFwDesc,
+      nsxDistributedFirewallDesc: nsxDfwDesc,
+      applicationPublishingDesc: appPublishingDesc,
+      loadBalancingDesc: loadBalancingDesc,
+      trafficFlowsSummary: trafficSummary
     });
   };
 
@@ -2379,7 +2458,24 @@ export const DesignGeneratorPage: React.FC = () => {
       targetPlatform: wizardState.targetPlatform,
       targetNodeSku: wizardState.targetNodeSku,
       targetNodeCount: wizardState.targetNodeCount,
-      sddcMgmtCidr: wizardState.sddcMgmtCidr
+      sddcMgmtCidr: wizardState.sddcMgmtCidr,
+      externalFw: wizardState.externalFirewall ? {
+        status: wizardState.externalFirewall.status,
+        vendor: wizardState.externalFirewall.vendor,
+        model: wizardState.externalFirewall.isCustomModel ? (wizardState.externalFirewall.customModelName || 'Custom') : wizardState.externalFirewall.model,
+        throughputGbps: wizardState.externalFirewall.throughputGbps,
+        deploymentMode: wizardState.externalFirewall.deploymentMode
+      } : undefined,
+      internalFw: wizardState.internalFirewall ? {
+        status: wizardState.internalFirewall.status,
+        vendor: wizardState.internalFirewall.vendor,
+        model: wizardState.internalFirewall.isCustomModel ? (wizardState.internalFirewall.customModelName || 'Custom') : wizardState.internalFirewall.model,
+        throughputGbps: wizardState.internalFirewall.throughputGbps,
+        deploymentMode: wizardState.internalFirewall.deploymentMode
+      } : undefined,
+      nsxDfw: wizardState.nsxDistributedFirewall,
+      applicationPublishing: wizardState.applicationPublishing,
+      loadBalancing: wizardState.loadBalancing
     });
   }, [
     activeTemplate,

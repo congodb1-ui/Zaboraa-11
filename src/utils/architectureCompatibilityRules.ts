@@ -466,6 +466,28 @@ export function validateWizardStep(
       if (state.securityNvaConfig.wafEnabled && !state.securityNvaConfig.wafSolution) {
         errors.push('Please specify a Web Application Firewall (WAF) solution.');
       }
+      if (state.externalFirewall?.status === 'enabled') {
+        if (!state.externalFirewall.vendor) {
+          errors.push('Please select a vendor for the External Perimeter Firewall.');
+        }
+        if (state.externalFirewall.isCustomModel && !state.externalFirewall.customModelName?.trim()) {
+          errors.push('Please specify a model name for the custom External Firewall.');
+        }
+      }
+      if (state.internalFirewall?.status === 'enabled') {
+        if (!state.internalFirewall.vendor) {
+          errors.push('Please select a vendor for the Internal Segmentation Firewall.');
+        }
+        if (state.internalFirewall.isCustomModel && !state.internalFirewall.customModelName?.trim()) {
+          errors.push('Please specify a model name for the custom Internal Firewall.');
+        }
+      }
+      if (state.applicationPublishing?.enabled && !state.applicationPublishing.platformName?.trim()) {
+        errors.push('Please specify an External Application Publishing platform name.');
+      }
+      if (state.loadBalancing?.enabled && !state.loadBalancing.platform) {
+        errors.push('Please select an Application Load Balancer platform.');
+      }
       break;
 
     case 5:
